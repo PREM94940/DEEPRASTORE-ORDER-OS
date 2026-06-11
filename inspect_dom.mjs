@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 
-const baseUrl = 'http://localhost:3000/checkout/q?sku=TEST';
+const baseUrl = 'https://storefront-nine-ebon.vercel.app/checkout/q?sku=TEST&cachebust=' + Date.now();
 
 (async () => {
   console.log("Starting DOM & Network Inspection on Live Domain...");
