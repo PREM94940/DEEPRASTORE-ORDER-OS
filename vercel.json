@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd apps/admin-portal && pnpm build",
+  "outputDirectory": "apps/admin-portal/.next",
+  "framework": "nextjs"
+}

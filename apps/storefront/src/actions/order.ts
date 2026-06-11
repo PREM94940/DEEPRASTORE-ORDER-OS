@@ -1,13 +1,11 @@
 import { OrderService } from '../../../../packages/infrastructure/src/services/OrderService';
 import { DrizzleOrderRepository } from '../../../../packages/infrastructure/src/db/repositories/DrizzleOrderRepository';
-import { DrizzleCatalogRepository } from '../../../../packages/infrastructure/src/db/repositories/DrizzleCatalogRepository';
 import { db } from '../../../../packages/infrastructure/src/db/client';
 import { requireAuth } from '../lib/auth';
 
 function getOrderService() {
   const orderRepo = new DrizzleOrderRepository(db);
-  const catalogRepo = new DrizzleCatalogRepository(db);
-  return new OrderService(orderRepo, catalogRepo);
+  return new OrderService(orderRepo);
 }
 
 export async function createOrder(params: {

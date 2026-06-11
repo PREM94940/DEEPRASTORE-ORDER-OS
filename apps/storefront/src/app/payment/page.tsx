@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,17 @@ import { Label } from '@/components/ui/label';
 import { ShieldCheck } from 'lucide-react';
 import { submitUtrAction } from '../actions/payment';
 
+export const dynamic = 'force-dynamic';
+
 export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div>Loading payment page...</div>}>
+      <PaymentContent />
+    </Suspense>
+  );
+}
+
+function PaymentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('orderId');

@@ -8,6 +8,7 @@ export interface CreateOrderDTO {
   source?: string;
   orderType?: string;
   paymentMethod?: string;
+  paymentStatus?: string;
   status?: string;
   totalAmount?: number | null;
   expectedDeliveryDate?: Date | null;

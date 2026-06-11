@@ -36,6 +36,9 @@ export async function createOrderDraft(formData: {
         country: 'India'
       }
     });
+    if (!order) {
+      throw new Error('Failed to create order record');
+    }
     
     return { success: true, orderId: order.id };
   } catch (error: any) {

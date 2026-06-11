@@ -11,7 +11,7 @@ export async function fetchCustomerOrdersAction(phone: string) {
     // Serialize dates for Client Component transfer
     return {
       success: true,
-      orders: orders.map(o => ({
+      orders: orders.map((o: any) => ({
         ...o,
         createdAt: o.createdAt.toISOString(),
         updatedAt: o.updatedAt.toISOString(),

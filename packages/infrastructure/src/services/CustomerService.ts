@@ -1,4 +1,4 @@
-import { ICustomerRepository } from '../../core-domain/src/customer/repositories/ICustomerRepository';
+import { ICustomerRepository } from '../../../core-domain/src/customer/repositories/ICustomerRepository';
 import { db } from '../db/client';
 
 export class CustomerService {

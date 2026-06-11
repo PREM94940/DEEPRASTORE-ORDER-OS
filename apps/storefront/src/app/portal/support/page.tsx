@@ -1,15 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, ArrowLeft, UploadCloud, ShieldAlert } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { submitSupportTicketAction } from '../../actions/support';
 
+export const dynamic = 'force-dynamic';
+
 export default function SupportRequestPage() {
+  return (
+    <Suspense fallback={<div>Loading support portal...</div>}>
+      <SupportRequestContent />
+    </Suspense>
+  );
+}
+
+function SupportRequestContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get('orderId') || '';

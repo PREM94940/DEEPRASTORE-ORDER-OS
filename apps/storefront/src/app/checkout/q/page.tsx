@@ -11,7 +11,17 @@ import { ShoppingBag, CreditCard, QrCode } from 'lucide-react';
 import { createOrderDraft } from '../../actions/checkout';
 import { useRouter } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default function QuickCheckoutPage() {
+  return (
+    <React.Suspense fallback={<div>Loading checkout...</div>}>
+      <QuickCheckoutContent />
+    </React.Suspense>
+  );
+}
+
+function QuickCheckoutContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sku = searchParams.get('sku');
