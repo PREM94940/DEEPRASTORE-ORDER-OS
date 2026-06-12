@@ -134,13 +134,13 @@ export class OrderRepository implements IOrderRepository {
         eq(orders.tenantId, tenantId),
         eq(orders.customerPhone, phone)
       )
-    ).orderBy(orders.createdAt);
+    );
   }
 
   async getAllOrders(tenantId: string) {
     return await db.select().from(orders).where(
       eq(orders.tenantId, tenantId)
-    ).orderBy(orders.createdAt);
+    );
   }
 
   async createSupportTicket(tx: any, tenantId: string, id: string, issueType: string, description: string, evidenceUrl: string): Promise<Order> {
