@@ -30,3 +30,15 @@ export async function markReady(tenantId: string, orderId: string, formData?: Fo
     throw error;
   }
 }
+
+export async function markDelivered(tenantId: string, orderId: string, formData?: FormData): Promise<void> {
+  try {
+    const service = new OrderService();
+    await service.updateOrderProductionStatus(tenantId, orderId, 'DELIVERED');
+    
+    revalidatePath('/orders');
+  } catch (error: any) {
+    console.error('Error marking delivered:', error);
+    throw error;
+  }
+}

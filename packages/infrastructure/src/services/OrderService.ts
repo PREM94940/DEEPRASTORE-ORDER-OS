@@ -66,6 +66,10 @@ export class OrderService {
     return (this.repository as any).getOpenExceptions(tenantId);
   }
 
+  async resolveException(tenantId: string, orderId: string) {
+    return (this.repository as any).resolveException(db, tenantId, orderId);
+  }
+
   async createOrder(params: {
     tenantId: string;
     customerId?: string;

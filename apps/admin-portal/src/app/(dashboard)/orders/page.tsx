@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, AlertCircle, Clock, CheckCircle2, Loader2 } from 'lucide-react';
+import { Search, Filter, AlertCircle, Clock, CheckCircle2, Loader2, PackageCheck } from 'lucide-react';
 import { fetchAllOrdersAction } from '../../actions/orders';
+import { markDelivered } from '../../actions/production';
 
 export default function OrderDashboardPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,6 +106,7 @@ export default function OrderDashboardPage() {
                 <TableHead>Status</TableHead>
                 <TableHead>Expected Delivery</TableHead>
                 <TableHead>Delay Flag</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -139,6 +141,17 @@ export default function OrderDashboardPage() {
                         {indicator.icon}
                         {indicator.label}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {order.status === 'READY' ? (
+                        <form action={markDelivered.bind(null, '11111111-1111-1111-1111-111111111111', order.id)}>
+                          <Button size="sm" type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+                            <PackageCheck className="w-4 h-4 mr-2" /> Mark Delivered
+                          </Button>
+                        </form>
+                      ) : (
+                        <span className="text-zinc-600">-</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

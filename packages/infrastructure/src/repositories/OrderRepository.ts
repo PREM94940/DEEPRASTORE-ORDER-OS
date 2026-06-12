@@ -174,6 +174,16 @@ export class OrderRepository implements IOrderRepository {
     );
   }
 
+  async resolveException(tx: any, tenantId: string, id: string): Promise<Order> {
+    const client = tx || db;
+    await client.update(orders).set({
+      exceptionStatus: 'RESOLVED',
+      updatedAt: new Date()
+    }).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
+
+    return this.getOrderById(tenantId, id) as any;
+  }
+
   async addLineItem(tx: any, data: CreateOrderLineItemDTO): Promise<OrderLineItem> {
     const id = uuidv4();
     const client = tx || db;

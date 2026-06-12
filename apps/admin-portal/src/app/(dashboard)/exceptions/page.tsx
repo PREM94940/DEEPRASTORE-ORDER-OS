@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileWarning, MessageCircle, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { OrderService } from '@deeprastore/infrastructure/src/services/OrderService';
 import Link from 'next/link';
+import { resolveExceptionAction } from '../../actions/exceptions';
 
 export default async function ExceptionsDashboardPage() {
   const service = new OrderService();
@@ -82,9 +83,11 @@ export default async function ExceptionsDashboardPage() {
                       <Button size="sm" variant="secondary" className="bg-zinc-800 hover:bg-zinc-700">
                         <MessageCircle className="w-4 h-4 mr-2" /> Message Customer
                       </Button>
-                      <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                        Resolve
-                      </Button>
+                      <form action={resolveExceptionAction.bind(null, tenantId, ex.id)}>
+                        <Button size="sm" type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+                          Resolve
+                        </Button>
+                      </form>
                     </div>
                   </TableCell>
                 </TableRow>
