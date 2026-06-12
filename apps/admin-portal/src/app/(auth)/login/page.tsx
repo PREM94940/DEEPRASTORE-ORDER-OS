@@ -31,7 +31,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Link href="/theme" className="w-full">
+            <Link href="/orders" className="w-full">
               <Button className="w-full bg-white text-black hover:bg-zinc-200 transition-colors">
                 Authenticate
               </Button>
