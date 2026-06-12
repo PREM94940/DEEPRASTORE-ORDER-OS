@@ -137,6 +137,12 @@ export class OrderRepository implements IOrderRepository {
     ).orderBy(orders.createdAt);
   }
 
+  async getAllOrders(tenantId: string) {
+    return await db.select().from(orders).where(
+      eq(orders.tenantId, tenantId)
+    ).orderBy(orders.createdAt);
+  }
+
   async createSupportTicket(tx: any, tenantId: string, id: string, issueType: string, description: string, evidenceUrl: string): Promise<Order> {
     if (!evidenceUrl || evidenceUrl.trim() === '') {
       throw new Error('NO EVIDENCE = NO TICKET');

@@ -51,6 +51,10 @@ export class OrderService {
     return (this.repository as any).getOrdersByPhone(tenantId, phone);
   }
 
+  async getAllOrders(tenantId: string) {
+    return (this.repository as any).getAllOrders(tenantId);
+  }
+
   async createSupportTicket(tenantId: string, orderId: string, issueType: string, description: string, evidenceUrl: string) {
     return (this.repository as any).createSupportTicket(db, tenantId, orderId, issueType, description, evidenceUrl);
   }

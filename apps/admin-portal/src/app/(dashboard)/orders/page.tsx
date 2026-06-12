@@ -1,24 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, AlertCircle, Clock, CheckCircle2 } from 'lucide-react';
-
-// Mock data reflecting the Unified Order Record
-const MOCK_ORDERS = [
-  { id: 'DR-9921', customer: 'Priya Sharma', phone: '9876543210', source: 'WhatsApp', type: 'READY', payment: 'VERIFIED', status: 'PACKING', expectedDelivery: new Date(Date.now() + 86400000 * 2) },
-  { id: 'DR-9922', customer: 'Swathi Reddy', phone: '9123456789', source: 'Shopify', type: 'CUSTOM', payment: 'VERIFIED', status: 'STITCHING', expectedDelivery: new Date(Date.now() + 86400000 * 8) },
-  { id: 'DR-9923', customer: 'Kavya N', phone: '9988776655', source: 'Store', type: 'READY', payment: 'VERIFICATION_PENDING', status: 'DRAFT', expectedDelivery: new Date() },
-  { id: 'DR-9924', customer: 'Anjali V', phone: '9876543211', source: 'WhatsApp', type: 'READY', payment: 'VERIFIED', status: 'CONFIRMED', expectedDelivery: new Date(Date.now() - 86400000) },
-];
+import { Search, Filter, AlertCircle, Clock, CheckCircle2, Loader2 } from 'lucide-react';
+import { fetchAllOrdersAction } from '../../actions/orders';
 
 export default function OrderDashboardPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const [liveOrders, setLiveOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAllOrdersAction().then(res => {
+      if (res.success && res.orders) {
+        setLiveOrders(res.orders.map((o: any) => ({
+          ...o,
+          expectedDelivery: new Date(o.expectedDelivery)
+        })));
+      }
+      setLoading(false);
+    });
+  }, []);
 
   // Calculate Delay Flag and visual indicator
   const getDelayIndicator = (expectedDate: Date, status: string) => {
@@ -37,7 +44,7 @@ export default function OrderDashboardPage() {
     return { label: 'On Time', color: 'bg-emerald-950 text-emerald-400 border border-emerald-900', icon: <CheckCircle2 className="w-3 h-3 mr-1" /> };
   };
 
-  const filteredOrders = MOCK_ORDERS.filter(o => {
+  const filteredOrders = liveOrders.filter(o => {
     const matchesSearch = o.phone.includes(searchTerm) || o.id.toLowerCase().includes(searchTerm.toLowerCase());
     if (!matchesSearch) return false;
     
@@ -136,11 +143,15 @@ export default function OrderDashboardPage() {
             </TableBody>
           </Table>
           
-          {filteredOrders.length === 0 && (
+          {loading ? (
+            <div className="p-12 flex justify-center text-zinc-500">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+            </div>
+          ) : filteredOrders.length === 0 ? (
             <div className="p-12 text-center text-zinc-500">
               No orders found matching the current filters.
             </div>
-          )}
+          ) : null}
         </div>
       </Card>
     </div>
