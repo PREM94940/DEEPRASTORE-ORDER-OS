@@ -23,6 +23,6 @@ export async function fetchAllOrdersAction() {
     };
   } catch (error: any) {
     console.error('Failed to fetch orders:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || String(error) };
   }
 }

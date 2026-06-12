@@ -14,6 +14,7 @@ export default function OrderDashboardPage() {
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [liveOrders, setLiveOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAllOrdersAction().then(res => {
@@ -22,6 +23,8 @@ export default function OrderDashboardPage() {
           ...o,
           expectedDelivery: new Date(o.expectedDelivery)
         })));
+      } else if (!res.success) {
+        setError(res.error || "Unknown error occurred");
       }
       setLoading(false);
     });
@@ -140,18 +143,27 @@ export default function OrderDashboardPage() {
                   </TableRow>
                 );
               })}
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-zinc-500" />
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center text-red-500 font-bold">
+                    ERROR: {error}
+                  </TableCell>
+                </TableRow>
+              ) : filteredOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center text-zinc-500">
+                    No orders found matching the current filters.
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
-          
-          {loading ? (
-            <div className="p-12 flex justify-center text-zinc-500">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="p-12 text-center text-zinc-500">
-              No orders found matching the current filters.
-            </div>
-          ) : null}
         </div>
       </Card>
     </div>
