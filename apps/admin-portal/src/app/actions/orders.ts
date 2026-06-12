@@ -18,7 +18,7 @@ export async function fetchAllOrdersAction() {
         type: o.orderType || 'READY',
         payment: o.paymentStatus || 'PENDING',
         status: o.status || 'DRAFT',
-        expectedDelivery: o.expectedDeliveryDate ? o.expectedDeliveryDate.toISOString() : new Date().toISOString(),
+        expectedDelivery: o.expectedDeliveryDate ? new Date(o.expectedDeliveryDate).toISOString() : new Date().toISOString(),
       }))
     };
   } catch (error: any) {
