@@ -3,16 +3,30 @@
 import { OrderService } from '@deeprastore/infrastructure/src/services/OrderService';
 import { revalidatePath } from 'next/cache';
 
-export async function advanceProductionStatusAction(orderId: string, newStatus: string) {
-  const orderService = new OrderService();
-  const tenantId = '11111111-1111-1111-1111-111111111111';
-
+export async function startStitching(tenantId: string, orderId: string, formData?: FormData): Promise<void> {
   try {
-    await orderService.updateOrderProductionStatus(tenantId, orderId, newStatus);
+    const service = new OrderService();
+    await service.updateOrderProductionStatus(tenantId, orderId, 'STITCHING');
+    
+    // Revalidate paths to instantly refresh UI
     revalidatePath('/production-queue');
-    return { success: true };
+    revalidatePath('/orders');
   } catch (error: any) {
-    console.error('Failed to advance production status:', error);
-    return { success: false, error: error.message };
+    console.error('Error starting stitching:', error);
+    throw error;
+  }
+}
+
+export async function markReady(tenantId: string, orderId: string, formData?: FormData): Promise<void> {
+  try {
+    const service = new OrderService();
+    await service.updateOrderProductionStatus(tenantId, orderId, 'READY');
+    
+    // Revalidate paths to instantly refresh UI
+    revalidatePath('/production-queue');
+    revalidatePath('/orders');
+  } catch (error: any) {
+    console.error('Error marking ready:', error);
+    throw error;
   }
 }

@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { db } from '../db/client';
 import { orders, orderLineItems, orderAddresses } from '../schema/order';
 import { v4 as uuidv4 } from 'uuid';
@@ -96,7 +96,10 @@ export class OrderRepository implements IOrderRepository {
       and(
         eq(orders.tenantId, tenantId),
         eq(orders.paymentStatus, 'VERIFIED'),
-        eq(orders.status, 'CONFIRMED')
+        or(
+          eq(orders.status, 'CONFIRMED'),
+          eq(orders.status, 'STITCHING')
+        )
       )
     );
     return result;
@@ -110,7 +113,8 @@ export class OrderRepository implements IOrderRepository {
       'PENDING': ['STITCHING'],
       'CONFIRMED': ['STITCHING', 'PENDING'],
       'STITCHING': ['READY'],
-      'READY': [] // No backward movement
+      'READY': ['DELIVERED'],
+      'DELIVERED': []
     };
 
     const currentStatus = order.status;

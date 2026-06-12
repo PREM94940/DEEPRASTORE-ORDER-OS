@@ -52,7 +52,7 @@ export default function OrderDashboardPage() {
     if (!matchesSearch) return false;
     
     if (activeFilter === 'PENDING_PAYMENT') return o.payment === 'VERIFICATION_PENDING' || o.payment === 'PENDING';
-    if (activeFilter === 'READY') return o.type === 'READY';
+    if (activeFilter === 'READY') return o.status === 'READY';
     if (activeFilter === 'CUSTOM') return o.type === 'CUSTOM';
     if (activeFilter === 'DELAYED') {
       const today = new Date();
