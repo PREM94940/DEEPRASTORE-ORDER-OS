@@ -1,5 +1,5 @@
 import { IOrderRepository } from '../../../core-domain/src/order/repositories/IOrderRepository';
-import { Order, CreateOrderDTO, UpdateOrderStatusDTO, AssignStaffDTO } from '../../../core-domain/src/order/domain/models/OrderModels';
+import { Order } from '../../../core-domain/src/order/domain/models/OrderModels';
 import { v4 as uuidv4 } from 'uuid';
 import { OrderRepository } from '../repositories/OrderRepository';
 import { CatalogRepository } from '../repositories/CatalogRepository';
