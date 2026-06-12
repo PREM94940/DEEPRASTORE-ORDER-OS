@@ -24,42 +24,37 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-zinc-500">Platform</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
               <SidebarMenuItem>
-                <Link href="/theme" className="text-white w-full h-full">
-                  <SidebarMenuButton isActive={pathname === '/theme'}>
-                    <Paintbrush />
-                    <span>Theme Editor</span>
+                <Link href="/orders" className="text-white w-full h-full">
+                  <SidebarMenuButton isActive={pathname === '/orders'}>
+                    <ShoppingBag />
+                    <span>All Orders</span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-zinc-500">Operations (Locked)</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton disabled className="opacity-50">
-                  <ShoppingBag />
-                  <span>Orders</span>
-                </SidebarMenuButton>
+                <Link href="/payments" className="text-white w-full h-full">
+                  <SidebarMenuButton isActive={pathname === '/payments'}>
+                    <Settings />
+                    <span>Payments</span>
+                  </SidebarMenuButton>
+                </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton disabled className="opacity-50">
-                  <Box />
-                  <span>Inventory</span>
-                </SidebarMenuButton>
+                <Link href="/production-queue" className="text-white w-full h-full">
+                  <SidebarMenuButton isActive={pathname === '/production-queue'}>
+                    <Box />
+                    <span>Master Ji Queue</span>
+                  </SidebarMenuButton>
+                </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton disabled className="opacity-50">
-                  <Users />
-                  <span>CRM</span>
-                </SidebarMenuButton>
+                <Link href="/quick-order" className="text-white w-full h-full">
+                  <SidebarMenuButton isActive={pathname === '/quick-order'}>
+                    <LayoutDashboard />
+                    <span>Quick Links & Booking</span>
+                  </SidebarMenuButton>
+                </Link>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
