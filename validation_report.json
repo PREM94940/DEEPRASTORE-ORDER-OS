@@ -1,0 +1,9 @@
+{
+  "e2e": {
+    "orderId": "6daf5e3c-190f-4482-b2c9-8602c5ff8ba5",
+    "inputPhone": "+91 9494 026 218",
+    "storedPhone": "9494026218",
+    "adminFetchSuccess": true,
+    "portalFetchSuccess": true
+  }
+}

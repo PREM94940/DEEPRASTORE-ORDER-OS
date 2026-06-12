@@ -1,7 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../db/client';
 import { customers, customerAddresses } from '../schema/customer';
 import { v4 as uuidv4 } from 'uuid';
+import { normalizePhone } from '../../../core-domain/src/utils/phone';
 import { ICustomerRepository, CreateCustomerDTO, CreateCustomerAddressDTO } from '../../../core-domain/src/customer/repositories/ICustomerRepository';
 import { Customer, CustomerAddress } from '../../../core-domain/src/customer/domain/models/CustomerModels';
 
@@ -9,10 +10,11 @@ export class CustomerRepository implements ICustomerRepository {
   async createCustomer(tx: any, data: CreateCustomerDTO): Promise<Customer> {
     const id = uuidv4();
     const client = tx || db;
+    const normalizedPhone = normalizePhone(data.phone);
     await client.insert(customers).values({
       id,
       tenantId: data.tenantId,
-      phone: data.phone || null,
+      phone: normalizedPhone || null,
       leadId: data.leadId || null,
     });
     
@@ -26,8 +28,14 @@ export class CustomerRepository implements ICustomerRepository {
     return result[0] as unknown as Customer;
   }
 
-  async getCustomerByPhone(tenantId: string, phone: string): Promise<Customer | null> {
-    const result = await db.select().from(customers).where(eq(customers.phone, phone));
+  async getCustomerByPhone(tenantId: string, phone: string) {
+    const normalizedPhone = normalizePhone(phone);
+    const result = await db.select().from(customers).where(
+      and(
+        eq(customers.tenantId, tenantId),
+        eq(customers.phone, normalizedPhone)
+      )
+    );
     if (!result.length || result[0].tenantId !== tenantId) return null;
     return result[0] as unknown as Customer;
   }

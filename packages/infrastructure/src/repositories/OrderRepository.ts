@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../db/client';
 import { orders, orderLineItems, orderAddresses } from '../schema/order';
 import { v4 as uuidv4 } from 'uuid';
+import { normalizePhone } from '../../../core-domain/src/utils/phone';
 import { 
   IOrderRepository, 
   CreateOrderDTO, 
@@ -19,7 +20,7 @@ export class OrderRepository implements IOrderRepository {
       tenantId: data.tenantId,
       customerId: data.customerId || null,
       customerName: data.customerName || null,
-      customerPhone: data.customerPhone || null,
+      customerPhone: normalizePhone(data.customerPhone),
       source: data.source || 'WHATSAPP',
       orderType: data.orderType || 'READY',
       paymentMethod: data.paymentMethod || null,
@@ -129,10 +130,11 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async getOrdersByPhone(tenantId: string, phone: string) {
+    const normalizedPhone = normalizePhone(phone);
     return await db.select().from(orders).where(
       and(
         eq(orders.tenantId, tenantId),
-        eq(orders.customerPhone, phone)
+        eq(orders.customerPhone, normalizedPhone)
       )
     );
   }

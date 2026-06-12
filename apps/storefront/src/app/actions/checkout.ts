@@ -1,5 +1,7 @@
 'use server';
 
+import { normalizePhone } from '../../../../../packages/core-domain/src/utils/phone';
+
 import { OrderService } from '@deeprastore/infrastructure/src/services/OrderService';
 
 export async function createOrderDraft(formData: {
@@ -28,7 +30,7 @@ export async function createOrderDraft(formData: {
       ],
       shippingAddress: {
         fullName: formData.name,
-        phone: formData.phone,
+        phone: normalizePhone(formData.phone),
         addressLine1: formData.address,
         city: formData.city,
         state: 'N/A',

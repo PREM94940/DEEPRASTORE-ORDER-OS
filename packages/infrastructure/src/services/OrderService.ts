@@ -1,8 +1,11 @@
 import { IOrderRepository } from '../../../core-domain/src/order/repositories/IOrderRepository';
+import { Order, CreateOrderDTO, UpdateOrderStatusDTO, AssignStaffDTO } from '../../../core-domain/src/order/domain/models/OrderModels';
+import { v4 as uuidv4 } from 'uuid';
 import { OrderRepository } from '../repositories/OrderRepository';
 import { CatalogRepository } from '../repositories/CatalogRepository';
 import { InventoryRepository } from '../repositories/InventoryRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
+import { normalizePhone } from '../../../core-domain/src/utils/phone';
 import { db } from '../db/client';
 
 export class OrderService {
@@ -109,7 +112,8 @@ export class OrderService {
     }
 
     let resolvedCustomerId = params.customerId;
-    const phone = params.customerPhone || params.shippingAddress.phone;
+    const rawPhone = params.customerPhone || params.shippingAddress.phone;
+    const phone = normalizePhone(rawPhone);
     
     if (!resolvedCustomerId && phone) {
       let customer = await this.customerRepo.getCustomerByPhone(params.tenantId, phone);
@@ -126,7 +130,7 @@ export class OrderService {
       tenantId: params.tenantId,
       customerId: resolvedCustomerId,
       customerName: params.customerName || params.shippingAddress.fullName,
-      customerPhone: params.customerPhone || params.shippingAddress.phone,
+      customerPhone: phone,
       source: params.source || 'WHATSAPP',
       orderType: params.orderType || 'READY',
       paymentMethod: params.paymentMethod,
