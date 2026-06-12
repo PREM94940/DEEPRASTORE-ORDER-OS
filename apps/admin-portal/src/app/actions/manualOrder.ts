@@ -49,6 +49,10 @@ export async function createManualOrder(formData: {
       }
     });
 
+    if (!order) {
+      return { success: false, error: 'Failed to create order.' };
+    }
+
     if (notes && notes.trim()) {
       // Create a support ticket to hold the notes/references so they are visible on the order
       await orderService.createSupportTicket(
