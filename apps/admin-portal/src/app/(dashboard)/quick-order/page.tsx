@@ -175,7 +175,7 @@ export default function QuickOrderGeneratorPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Order Source</Label>
-                  <Select value={source} onValueChange={setSource}>
+                  <Select value={source} onValueChange={(val: any) => setSource(val || 'WHATSAPP')}>
                     <SelectTrigger className="bg-zinc-950 border-zinc-800">
                       <SelectValue />
                     </SelectTrigger>

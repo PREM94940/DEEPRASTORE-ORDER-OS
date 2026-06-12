@@ -24,6 +24,9 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel className="text-zinc-500">Active Operations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
               <SidebarMenuItem>
                 <Link href="/orders" className="text-white w-full h-full">
                   <SidebarMenuButton isActive={pathname === '/orders'}>
