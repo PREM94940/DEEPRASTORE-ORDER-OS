@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, integer, numeric } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, integer, numeric, jsonb } from 'drizzle-orm/pg-core';
 import { customers } from './customer';
 
 export const orders = pgTable('orders', {
@@ -34,6 +34,17 @@ export const orders = pgTable('orders', {
   exceptionRaisedDate: timestamp('exception_raised_date'),
   exceptionStatus: varchar('exception_status', { length: 50 }).notNull().default('NONE'), // NONE, OPEN, RESOLVED
 
+  // V2 Enhancements
+  orderNumber: varchar('order_number', { length: 50 }).unique(),
+  
+  // Tracking Metadata (DELIVERED/DISPATCHED)
+  courierName: varchar('courier_name', { length: 255 }),
+  trackingId: varchar('tracking_id', { length: 255 }),
+  trackingUrl: varchar('tracking_url', { length: 1024 }),
+  dispatchDate: timestamp('dispatch_date'),
+  deliveryProofUrl: varchar('delivery_proof_url', { length: 1024 }),
+  notes: varchar('notes', { length: 2048 }),
+
   totalAmount: numeric('total_amount', { precision: 10, scale: 2 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -49,6 +60,7 @@ export const orderLineItems = pgTable('order_line_items', {
   status: varchar('status', { length: 50 }).notNull().default('PENDING'), // PENDING, STITCHING, READY, SHIPPED, DELIVERED
   expectedDeliveryDate: timestamp('expected_delivery_date'),
   delayReason: varchar('delay_reason', { length: 255 }),
+  measurements: jsonb('measurements'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

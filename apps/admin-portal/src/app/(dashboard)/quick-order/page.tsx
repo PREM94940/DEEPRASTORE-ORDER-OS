@@ -20,6 +20,15 @@ export default function QuickOrderGeneratorPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [source, setSource] = useState('WHATSAPP');
+  const [orderType, setOrderType] = useState('Ready Wear');
+  
+  const today = new Date();
+  const deliveryDateDefault = new Date();
+  deliveryDateDefault.setDate(today.getDate() + 15);
+  
+  const [orderDate, setOrderDate] = useState(today.toISOString().split('T')[0]);
+  const [deliveryDate, setDeliveryDate] = useState(deliveryDateDefault.toISOString().split('T')[0]);
+
   const [paymentReceived, setPaymentReceived] = useState(false);
   const [notes, setNotes] = useState('');
   
@@ -60,8 +69,11 @@ export default function QuickOrderGeneratorPage() {
         customerName,
         customerPhone,
         source,
+        orderType,
         paymentReceived,
         notes,
+        expectedDeliveryDate: new Date(deliveryDate),
+        createdAt: new Date(orderDate),
         items: [{ productVariantId: sku, quantity: 1 }],
         staffName: 'Admin POS'
       });
@@ -174,33 +186,75 @@ export default function QuickOrderGeneratorPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label>Order Date</Label>
+                  <Input 
+                    type="date"
+                    className="bg-zinc-950 border-zinc-800"
+                    value={orderDate}
+                    onChange={(e) => setOrderDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Expected Delivery Date</Label>
+                  <Input 
+                    type="date"
+                    className="bg-zinc-950 border-zinc-800"
+                    value={deliveryDate}
+                    onChange={(e) => setDeliveryDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label>Order Source</Label>
-                  <Select value={source} onValueChange={(val: any) => setSource(val || 'WHATSAPP')}>
+                  <Select value={source} onValueChange={(val: any) => setSource(val || 'WhatsApp')}>
                     <SelectTrigger className="bg-zinc-950 border-zinc-800">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-900 border-zinc-800">
-                      <SelectItem value="WHATSAPP">WhatsApp Message</SelectItem>
-                      <SelectItem value="STORE">Walk-in Store</SelectItem>
-                      <SelectItem value="PHONE">Phone Call</SelectItem>
+                      <SelectItem value="WhatsApp">WhatsApp Message</SelectItem>
+                      <SelectItem value="Walk-In">Walk-In Store</SelectItem>
+                      <SelectItem value="Phone">Phone Call</SelectItem>
+                      <SelectItem value="Instagram">Instagram</SelectItem>
+                      <SelectItem value="Facebook">Facebook</SelectItem>
+                      <SelectItem value="Website">Website</SelectItem>
+                      <SelectItem value="Reference">Reference</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
                 <div className="space-y-2">
-                  <Label>Payment Status *</Label>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <input 
-                      type="checkbox" 
-                      id="paymentToggle" 
-                      className="w-4 h-4 accent-indigo-600 bg-zinc-900 border-zinc-700 rounded"
-                      checked={paymentReceived}
-                      onChange={(e) => setPaymentReceived(e.target.checked)}
-                    />
-                    <Label htmlFor="paymentToggle" className="text-sm font-normal text-zinc-300">
-                      Payment Received <span className="text-xs text-zinc-500">(Sets to Verified & skips to Master Ji)</span>
-                    </Label>
-                  </div>
+                  <Label>Order Type</Label>
+                  <Select value={orderType} onValueChange={(val: any) => setOrderType(val || 'Ready Wear')}>
+                    <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-800">
+                      <SelectItem value="Ready Wear">Ready Wear</SelectItem>
+                      <SelectItem value="Customization">Customization</SelectItem>
+                      <SelectItem value="Alteration">Alteration</SelectItem>
+                      <SelectItem value="Blouse Stitching">Blouse Stitching</SelectItem>
+                      <SelectItem value="Half Saree">Half Saree</SelectItem>
+                      <SelectItem value="Lehenga">Lehenga</SelectItem>
+                      <SelectItem value="Replacement">Replacement</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Payment Status *</Label>
+                <div className="flex items-center space-x-2 mt-2">
+                  <input 
+                    type="checkbox" 
+                    id="paymentToggle" 
+                    className="w-4 h-4 accent-indigo-600 bg-zinc-900 border-zinc-700 rounded"
+                    checked={paymentReceived}
+                    onChange={(e) => setPaymentReceived(e.target.checked)}
+                  />
+                  <Label htmlFor="paymentToggle" className="text-sm font-normal text-zinc-300">
+                    Payment Received <span className="text-xs text-zinc-500">(Sets to Verified & skips to Master Ji)</span>
+                  </Label>
                 </div>
               </div>
 

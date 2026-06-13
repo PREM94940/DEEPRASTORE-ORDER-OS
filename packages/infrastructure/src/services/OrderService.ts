@@ -70,6 +70,10 @@ export class OrderService {
     return (this.repository as any).resolveException(db, tenantId, orderId);
   }
 
+  async updateOrderDetails(tenantId: string, orderId: string, data: any) {
+    return (this.repository as any).updateOrderDetails(db, tenantId, orderId, data);
+  }
+
   async createOrder(params: {
     tenantId: string;
     customerId?: string;
@@ -78,6 +82,8 @@ export class OrderService {
     source?: string;
     orderType?: string;
     paymentMethod?: string;
+    expectedDeliveryDate?: Date;
+    createdAt?: Date;
     items: Array<{ productVariantId: string; quantity: number }>;
     shippingAddress: {
       fullName: string;
@@ -107,12 +113,15 @@ export class OrderService {
     }
 
     // Calculate Expected Delivery Date
-    const expectedDeliveryDate = new Date();
-    if ((params.orderType || 'READY') === 'READY') {
-      expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 3);
-    } else {
-      // Configurable custom timeline, defaulting to 14 days
-      expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 14);
+    let expectedDeliveryDate = params.expectedDeliveryDate;
+    if (!expectedDeliveryDate) {
+      expectedDeliveryDate = new Date();
+      if ((params.orderType || 'READY') === 'READY') {
+        expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 3);
+      } else {
+        // Configurable custom timeline, defaulting to 14 days
+        expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 14);
+      }
     }
 
     let resolvedCustomerId = params.customerId;
@@ -141,6 +150,7 @@ export class OrderService {
       paymentStatus: 'PENDING',
       status: 'DRAFT',
       expectedDeliveryDate,
+      createdAt: params.createdAt,
       totalAmount,
     });
 

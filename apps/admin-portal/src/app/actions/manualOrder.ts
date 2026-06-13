@@ -9,12 +9,15 @@ export async function createManualOrder(formData: {
   customerName: string;
   customerPhone: string;
   source: string;
+  orderType?: string;
   paymentReceived: boolean;
   notes: string;
+  expectedDeliveryDate?: Date;
+  createdAt?: Date;
   items: Array<{ productVariantId: string; quantity: number }>;
   staffName: string;
 }) {
-  const { tenantId, customerName, customerPhone, source, paymentReceived, notes, items, staffName } = formData;
+  const { tenantId, customerName, customerPhone, source, orderType, paymentReceived, notes, expectedDeliveryDate, createdAt, items, staffName } = formData;
 
   if (!customerName || !customerName.trim()) {
     return { success: false, error: 'Customer Name is required for manual orders.' };
@@ -35,8 +38,10 @@ export async function createManualOrder(formData: {
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
       source: source || 'STORE',
-      orderType: 'READY',
+      orderType: orderType || 'READY',
       paymentMethod: 'MANUAL',
+      expectedDeliveryDate,
+      createdAt,
       items,
       shippingAddress: {
         fullName: customerName.trim(),

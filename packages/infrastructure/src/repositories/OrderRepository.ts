@@ -1,4 +1,4 @@
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { orders, orderLineItems, orderAddresses } from '../schema/order';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,12 +12,24 @@ import {
 import { Order, OrderLineItem, OrderAddress } from '../../../core-domain/src/order/domain/models/OrderModels';
 
 export class OrderRepository implements IOrderRepository {
+
+  async generateOrderNumber(client: any, tenantId: string): Promise<string> {
+    const year = new Date().getFullYear().toString().slice(-2);
+    const result = await client.select({ count: sql`count(*)` }).from(orders).where(sql`tenant_id = ${tenantId} AND extract(year from created_at) = extract(year from current_date)`);
+    const count = parseInt(result[0].count as string) || 0;
+    const nextSeq = (count + 1).toString().padStart(4, '0');
+    return `DP${year}${nextSeq}`;
+  }
+
   async createOrder(tx: any, data: CreateOrderDTO): Promise<Order> {
     const id = uuidv4();
     const client = tx || db;
+    const orderNumber = await this.generateOrderNumber(client, data.tenantId);
+    
     await client.insert(orders).values({
       id,
       tenantId: data.tenantId,
+      orderNumber,
       customerId: data.customerId || null,
       customerName: data.customerName || null,
       customerPhone: normalizePhone(data.customerPhone),
@@ -27,7 +39,8 @@ export class OrderRepository implements IOrderRepository {
       status: data.status || 'PENDING',
       totalAmount: data.totalAmount?.toString() || null,
       expectedDeliveryDate: data.expectedDeliveryDate || null,
-    });
+      createdAt: data.createdAt || new Date(), // Allow overriding date
+    } as any);
     
     const result = await client.select().from(orders).where(eq(orders.id, id));
     const raw = result[0];
@@ -45,6 +58,32 @@ export class OrderRepository implements IOrderRepository {
         ...raw,
         totalAmount: raw.totalAmount ? parseFloat(raw.totalAmount as string) : null
     } as unknown as Order;
+  }
+
+  async updateOrderDetails(tx: any, tenantId: string, id: string, data: Partial<CreateOrderDTO>): Promise<Order> {
+    const client = tx || db;
+    
+    // Extract valid columns for the orders table update
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+    
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.expectedDeliveryDate !== undefined) updateData.expectedDeliveryDate = data.expectedDeliveryDate;
+    if (data.notes !== undefined) updateData.notes = data.notes; 
+    
+    if (data.courierName !== undefined) updateData.courierName = data.courierName;
+    if (data.trackingId !== undefined) updateData.trackingId = data.trackingId;
+    if (data.trackingUrl !== undefined) updateData.trackingUrl = data.trackingUrl;
+    if (data.dispatchDate !== undefined) updateData.dispatchDate = data.dispatchDate;
+    if (data.orderType !== undefined) updateData.orderType = data.orderType;
+    if (data.source !== undefined) updateData.source = data.source;
+
+    await client.update(orders).set(updateData).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
+    
+    const order = await this.getOrderById(tenantId, id);
+    if (!order) throw new Error('Order not found');
+    return order;
   }
 
   async updateOrderStatus(tx: any, tenantId: string, id: string, status: string): Promise<Order> {
