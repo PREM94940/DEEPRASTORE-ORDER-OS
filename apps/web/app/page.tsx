@@ -4,6 +4,8 @@ import { orders } from "@deeprastore/infrastructure/src/schema/order";
 import { desc } from "drizzle-orm";
 import { OperationsGrid } from "@/components/operations-grid";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const allOrders = await db
     .select({

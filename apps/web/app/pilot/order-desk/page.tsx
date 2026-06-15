@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { getPendingEnquiries } from '@/app/actions/order-desk';
 import { UnifiedOrderDesk } from '@/components/unified-order-desk';
 

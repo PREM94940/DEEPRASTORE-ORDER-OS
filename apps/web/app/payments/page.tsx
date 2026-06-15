@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { db } from "@deeprastore/infrastructure/src/db/client";
 import { payments } from "@deeprastore/infrastructure/src/schema/order";
 import { orders } from "@deeprastore/infrastructure/src/schema/order";

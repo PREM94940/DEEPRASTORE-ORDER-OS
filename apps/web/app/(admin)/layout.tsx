@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import { db } from '@deeprastore/infrastructure/src/db/client';
