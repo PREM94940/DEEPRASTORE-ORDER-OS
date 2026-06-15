@@ -1,0 +1,126 @@
+'use server';
+
+import { db } from '@deeprastore/infrastructure';
+import { orders, enquiries, customers, payments } from '@deeprastore/infrastructure/src/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+
+const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
+
+export async function getPendingEnquiries() {
+  try {
+    const result = await db.select()
+      .from(enquiries)
+      .where(and(
+        eq(enquiries.tenantId, MOCK_TENANT_ID),
+        eq(enquiries.status, 'NEW_ENQUIRY')
+      ))
+      .orderBy(desc(enquiries.createdAt));
+    return result;
+  } catch (error) {
+    console.error('Failed to get enquiries:', error);
+    return [];
+  }
+}
+
+export async function convertEnquiryToOrder(enquiryId: string) {
+  try {
+    const [enquiry] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
+    if (!enquiry) return { error: 'Enquiry not found' };
+
+    return { success: true, enquiry };
+  } catch (error) {
+    return { error: 'Failed to convert enquiry' };
+  }
+}
+
+export async function createUnifiedOrderAction(data: any) {
+  try {
+    return await db.transaction(async (tx) => {
+      // 1. Find or create customer
+      let customerId = data.customerId;
+      
+      if (!customerId) {
+        // Try to find by phone
+        const existing = await tx.select().from(customers).where(eq(customers.phone, data.phone));
+        if (existing.length > 0) {
+          customerId = existing[0].id;
+        } else {
+          // Create new
+          const [newCust] = await tx.insert(customers).values({
+            tenantId: MOCK_TENANT_ID,
+            name: data.name,
+            phone: data.phone,
+          }).returning();
+          customerId = newCust.id;
+        }
+      }
+
+      // 2. Generate Order Number
+      const orderNumber = `DP-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+
+      // 3. Create Order
+      const [newOrder] = await tx.insert(orders).values({
+        tenantId: MOCK_TENANT_ID,
+        customerId: customerId,
+        customerPhone: data.phone,
+        customerName: data.name,
+        source: data.source,
+        orderCategory: data.orderType,
+        primaryImageUrl: data.attachments?.[0]?.url || '',
+        orderDate: data.orderDate ? new Date(data.orderDate) : new Date(),
+        expectedDeliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
+        measurementStatus: data.measurementStatus,
+        fabricSource: data.fabricSource,
+        fabricDetails: data.fabricDetails,
+        attachments: data.attachments,
+        totalAmount: data.totalAmount?.toString() || '0',
+        advanceAmount: data.advanceAmount?.toString() || '0',
+        balanceAmount: data.balanceAmount?.toString() || '0',
+        paymentMethod: data.paymentMethod,
+        utrNumber: data.utrNumber,
+        paymentProofUrl: data.paymentProofUrl,
+        notes: data.notes,
+        status: 'CONFIRMED', // Immediately confirmed on desk entry
+        orderNumber,
+      }).returning();
+
+      // 4. Update Enquiry Status if this came from an enquiry
+      if (data.enquiryId) {
+        await tx.update(enquiries)
+          .set({ status: 'CONVERTED', orderId: newOrder.id })
+          .where(eq(enquiries.id, data.enquiryId));
+      }
+
+      // 5. Create Payment Record if advance is paid
+      if (data.advanceAmount && Number(data.advanceAmount) > 0) {
+        await tx.insert(payments).values({
+          orderId: newOrder.id,
+          amount: data.advanceAmount.toString(),
+          utr: data.utrNumber,
+          screenshotUrl: data.paymentProofUrl,
+          status: data.paymentMethod === 'CASH' ? 'VERIFIED' : 'PENDING',
+        });
+      }
+
+      revalidatePath('/pilot/order-desk');
+      
+      return { 
+        success: true, 
+        order: {
+          id: newOrder.id,
+          orderNumber: newOrder.orderNumber,
+          customerName: newOrder.customerName,
+          customerPhone: newOrder.customerPhone,
+          totalAmount: newOrder.totalAmount,
+          advanceAmount: newOrder.advanceAmount,
+          balanceAmount: newOrder.balanceAmount,
+          expectedDeliveryDate: newOrder.expectedDeliveryDate,
+        }
+      };
+    });
+  } catch (error) {
+    console.error('Failed to create order:', error);
+    return { success: false, error: 'Failed to create order' };
+  }
+}

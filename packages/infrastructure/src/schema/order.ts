@@ -1,22 +1,38 @@
-import { pgTable, uuid, varchar, timestamp, integer, numeric, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, integer, numeric, jsonb, serial } from 'drizzle-orm/pg-core';
 import { customers } from './customer';
+
+export const businessIdSeq = pgTable('business_id_seq', {
+  id: serial('id').primaryKey(),
+});
 
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
+  businessId: varchar('business_id', { length: 50 }).unique(),
   tenantId: uuid('tenant_id').notNull(),
   customerId: uuid('customer_id').references(() => customers.id),
+  customerPhone: varchar('customer_phone', { length: 50 }).references(() => customers.phone),
   customerName: varchar('customer_name', { length: 255 }),
-  customerPhone: varchar('customer_phone', { length: 50 }),
-  source: varchar('source', { length: 50 }).notNull().default('WHATSAPP'), // WHATSAPP, STORE, SHOPIFY
-  orderType: varchar('order_type', { length: 50 }).notNull().default('READY'), // READY, CUSTOM
-  status: varchar('status', { length: 50 }).notNull().default('DRAFT'),
-  paymentMethod: varchar('payment_method', { length: 50 }), // RAZORPAY, UPI
-  paymentStatus: varchar('payment_status', { length: 50 }).notNull().default('PENDING'), // PENDING, VERIFICATION_PENDING, VERIFIED
+  source: varchar('source', { length: 50 }).notNull().default('WHATSAPP'), // WEBSITE, WHATSAPP, WALK_IN, PHONE
+  orderCategory: varchar('order_category', { length: 50 }).notNull().default('READY_MADE'), // READY_MADE, CUSTOM_STITCHING, ALTERATION, FABRIC_ONLY
+  primaryImageUrl: varchar('primary_image_url', { length: 1024 }).notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('DRAFT'), // DRAFT, PENDING_CONFIRMATION, CONFIRMED, FULFILLED, CANCELLED
+  paymentMethod: varchar('payment_method', { length: 50 }), // SHOPIFY, RAZORPAY, UPI_SCREENSHOT, BANK_TRANSFER, CARD_MACHINE, CASH
+  paymentStatus: varchar('payment_status', { length: 50 }).notNull().default('UNPAID'), // UNPAID, PENDING_VERIFICATION, PARTIAL, PAID, REFUNDED
+  productionStatus: varchar('production_status', { length: 50 }).notNull().default('NOT_STARTED'), // NOT_STARTED, MEASUREMENT_PENDING, GARMENT_RECEIVED, INVENTORY_RESERVED, CUTTING, STITCHING, FINISHING, QC_PENDING, READY, HOLD
+  dispatchStatus: varchar('dispatch_status', { length: 50 }).notNull().default('NOT_STARTED'), // NOT_STARTED, PACKING, PACKED, DISPATCHED, DELIVERED, RETURNED
+  statusUpdatedAt: timestamp('status_updated_at').defaultNow().notNull(),
   utrNumber: varchar('utr_number', { length: 100 }),
   paymentProofUrl: varchar('payment_proof_url', { length: 1024 }),
   verificationStaff: varchar('verification_staff', { length: 255 }),
   verificationTime: timestamp('verification_time'),
   expectedDeliveryDate: timestamp('expected_delivery_date'),
+  orderDate: timestamp('order_date').defaultNow().notNull(),
+  measurementStatus: varchar('measurement_status', { length: 50 }).notNull().default('PENDING'), // USE_EXISTING, TAKE_NEW, PENDING, BOOK_PHOTO_UPLOADED
+  fabricSource: varchar('fabric_source', { length: 50 }), // CUSTOMER, DEEPRASTORE
+  fabricDetails: jsonb('fabric_details'),
+  attachments: jsonb('attachments'),
+  advanceAmount: numeric('advance_amount', { precision: 10, scale: 2 }),
+  balanceAmount: numeric('balance_amount', { precision: 10, scale: 2 }),
   
   // Operational Control Fields
   assignedStaff: varchar('assigned_staff', { length: 255 }),
@@ -76,5 +92,16 @@ export const orderAddresses = pgTable('order_addresses', {
   state: varchar('state', { length: 255 }).notNull(),
   postalCode: varchar('postal_code', { length: 50 }).notNull(),
   country: varchar('country', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+export const payments = pgTable('payments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id').notNull().references(() => orders.id),
+  amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
+  utr: varchar('utr', { length: 255 }),
+  screenshotUrl: varchar('screenshot_url', { length: 1024 }),
+  status: varchar('status', { length: 50 }).notNull().default('PENDING'),
+  verifiedBy: varchar('verified_by', { length: 255 }),
+  verifiedAt: timestamp('verified_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

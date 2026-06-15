@@ -28,9 +28,12 @@ export class DrizzleCustomerRepository implements ICustomerRepository {
 
   async addAddress(tx: any, data: CreateCustomerAddressDTO): Promise<CustomerAddress> {
     const db = tx || this.db;
+    const [cust] = await db.select().from(customers).where(eq(customers.id, data.customerId));
+    if (!cust) throw new Error('Customer not found');
+
     const [result] = await db.insert(customerAddresses).values({
       tenantId: data.tenantId,
-      customerId: data.customerId,
+      customerPhone: cust.phone,
       fullName: data.fullName,
       phone: data.phone,
       addressLine1: data.addressLine1,
@@ -40,12 +43,16 @@ export class DrizzleCustomerRepository implements ICustomerRepository {
       postalCode: data.postalCode,
       country: data.country,
     }).returning();
-    return result as CustomerAddress;
+    
+    return { ...result, customerId: data.customerId } as unknown as CustomerAddress;
   }
 
   async getAddressesByCustomerId(tenantId: string, customerId: string): Promise<CustomerAddress[]> {
+    const [cust] = await this.db.select().from(customers).where(eq(customers.id, customerId));
+    if (!cust) return [];
+
     const results = await this.db.select().from(customerAddresses)
-      .where(and(eq(customerAddresses.tenantId, tenantId), eq(customerAddresses.customerId, customerId)));
-    return results as CustomerAddress[];
+      .where(and(eq(customerAddresses.tenantId, tenantId), eq(customerAddresses.customerPhone, cust.phone)));
+    return results.map((r: any) => ({ ...r, customerId })) as unknown as CustomerAddress[];
   }
 }

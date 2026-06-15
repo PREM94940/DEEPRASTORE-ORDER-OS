@@ -5,22 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1780907229683,
-      "tag": "0000_public_gwen_stacy",
+      "when": 1781422463445,
+      "tag": "0000_productive_hex",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1780912968065,
-      "tag": "0001_broken_wrecker",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1780915356788,
-      "tag": "0002_spotty_zaladane",
+      "when": 1781504308498,
+      "tag": "0001_bright_stature",
       "breakpoints": true
     }
   ]

@@ -55,6 +55,32 @@ export class DrizzleOrderRepository implements IOrderRepository {
     } as Order;
   }
 
+  async updateOrderDetails(tx: any, tenantId: string, id: string, data: Partial<CreateOrderDTO>): Promise<Order> {
+    const client = tx || this.db;
+    
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+    
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.expectedDeliveryDate !== undefined) updateData.expectedDeliveryDate = data.expectedDeliveryDate;
+    if (data.notes !== undefined) updateData.notes = data.notes; 
+    if (data.courierName !== undefined) updateData.courierName = data.courierName;
+    if (data.trackingId !== undefined) updateData.trackingId = data.trackingId;
+    if (data.trackingUrl !== undefined) updateData.trackingUrl = data.trackingUrl;
+    if (data.dispatchDate !== undefined) updateData.dispatchDate = data.dispatchDate;
+    if (data.orderType !== undefined) updateData.orderType = data.orderType;
+    if (data.source !== undefined) updateData.source = data.source;
+
+    const [result] = await client.update(orders).set(updateData).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId))).returning();
+    
+    if (!result) throw new Error('Order not found');
+    return {
+      ...result,
+      totalAmount: result.totalAmount ? Number(result.totalAmount) : null,
+    } as Order;
+  }
+
   async addLineItem(tx: any, data: CreateOrderLineItemDTO): Promise<OrderLineItem> {
     const db = tx || this.db;
     const [result] = await db.insert(orderLineItems).values({
