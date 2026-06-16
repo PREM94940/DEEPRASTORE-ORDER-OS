@@ -19,13 +19,13 @@ export default async function CommandCenterPage() {
     businessId: o.businessId as string,
     customerName: o.customerName || 'Unknown',
     customerPhone: o.customerPhone as string,
-    dueDate: o.expectedDeliveryDate ? o.expectedDeliveryDate.toISOString().split('T')[0] : 'Not Set',
+    dueDate: o.expectedDeliveryDate ? new Date(o.expectedDeliveryDate).toISOString().split('T')[0] : 'Not Set',
     masterJi: o.assignedStaff || 'Unassigned',
     productionStatus: o.productionStatus,
     dispatchStatus: o.dispatchStatus,
     paymentStatus: o.paymentStatus,
     photoUrl: o.primaryImageUrl || 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=100&auto=format&fit=crop&q=60',
-    statusUpdatedAt: o.statusUpdatedAt ? o.statusUpdatedAt.toISOString() : new Date().toISOString()
+    statusUpdatedAt: o.statusUpdatedAt ? new Date(o.statusUpdatedAt).toISOString() : new Date().toISOString()
   }));
 
   return (
