@@ -20,13 +20,16 @@ const validTransitions: Record<OrderStatus, OrderStatus[]> = {
   'Cancelled': []
 };
 
+import { logSystemAlert } from './monitoring';
+
 export function canTransitionTo(currentStatus: OrderStatus, newStatus: OrderStatus): boolean {
   return validTransitions[currentStatus].includes(newStatus);
 }
 
 export async function transitionOrderStatus(orderId: string, currentStatus: OrderStatus, newStatus: OrderStatus, notes?: string): Promise<TimelineEvent> {
   if (!canTransitionTo(currentStatus, newStatus)) {
-    throw new Error(Invalid transition from  to );
+    await logSystemAlert('WARNING', 'JOB', `Invalid status transition for order ${orderId}: ${currentStatus} -> ${newStatus}`);
+    throw new Error(`Invalid transition from ${currentStatus} to ${newStatus}`);
   }
 
   // Record timeline history event
@@ -44,5 +47,5 @@ export async function transitionOrderStatus(orderId: string, currentStatus: Orde
 }
 
 export async function syncTimelineEvent(event: TimelineEvent): Promise<void> {
-  console.log(Timeline sync for order : Status updated to  at );
+  console.log(`Timeline sync for order ${event.orderId}: Status updated to ${event.status} at ${event.timestamp}`);
 }

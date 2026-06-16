@@ -13,6 +13,10 @@ export class MockSMSProvider implements SMSProvider {
   }
 
   async sendWhatsApp(to: string, message: string, templateId?: string): Promise<boolean> {
+    if (to === '+919999999999') {
+      console.log(`[MockSMSProvider] SIMULATED FAILURE for ${to}`);
+      throw new Error('Provider unavailable or API rate limit exceeded');
+    }
     console.log(`[MockSMSProvider] Sending WhatsApp to ${to} [Template: ${templateId}]: ${message}`);
     return true;
   }
@@ -34,10 +38,17 @@ export const NotificationTemplates = {
     `We have received a payment of ₹${amount} for your order ${orderNumber}. Thank you!`
 };
 
+import { logSystemAlert } from './monitoring';
+
 export async function notifyOrderCreated(phone: string, orderNumber: string, totalAmount: number, advanceAmount: number) {
-  const messageBody = NotificationTemplates.ORDER_CREATED(orderNumber, totalAmount, advanceAmount);
-  await NotificationService.queueMessage({ channel: 'WHATSAPP', recipient: phone, customerPhone: phone, messageTemplateId: 'ORDER_CREATED', messageBody });
-  await smsProvider.sendWhatsApp(phone, messageBody, 'ORDER_CREATED');
+  try {
+    const messageBody = NotificationTemplates.ORDER_CREATED(orderNumber, totalAmount, advanceAmount);
+    await NotificationService.queueMessage({ channel: 'WHATSAPP', recipient: phone, customerPhone: phone, messageTemplateId: 'ORDER_CREATED', messageBody });
+    await smsProvider.sendWhatsApp(phone, messageBody, 'ORDER_CREATED');
+  } catch (error: any) {
+    console.error('Notification failed:', error);
+    await logSystemAlert('WARNING', 'SMS', `Failed to send ORDER_CREATED to ${phone}`, { error: error.message });
+  }
 }
 
 export async function notifyOrderReady(phone: string, orderNumber: string) {

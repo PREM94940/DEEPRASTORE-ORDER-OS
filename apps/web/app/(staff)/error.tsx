@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
 import { useEffect } from 'react';
+import { logSystemAlert } from './actions/monitoring';
 
 export default function ErrorBoundary({
   error,
@@ -10,8 +11,8 @@ export default function ErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
     console.error('Staff Area Error:', error);
+    logSystemAlert('ERROR', 'WEB', error.message, { stack: error.stack, digest: error.digest }).catch(console.error);
   }, [error]);
 
   return (
