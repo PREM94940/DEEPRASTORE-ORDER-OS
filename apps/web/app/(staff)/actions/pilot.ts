@@ -1,106 +1,103 @@
 'use server';
 
 import { db } from '@deeprastore/infrastructure/src/db/client';
-import { orders } from '@deeprastore/infrastructure/src/schema/order';
-import { supportTickets } from '@deeprastore/infrastructure/src/schema/support';
-import { exceptions } from '@deeprastore/infrastructure/src/schema/exceptions';
-import { notificationQueue } from '@deeprastore/infrastructure/src/schema/notifications';
-import { bugRegistry } from '@deeprastore/infrastructure/src/schema/bugs';
-
-import { eq, sql, isNull, and, or, lt, ne } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 export async function getPilotMetrics() {
+  const startTime = Date.now();
+  
+  // Condense 19 parallel queries into 5 aggregated queries to avoid Vercel 504 timeouts
   const [
-    ordersCreated,
-    paymentsRecorded,
-    supportTicketsCount,
-    exceptionsCount,
-    notificationsSent,
-    failedNotifications,
-    ordersStuckCutting,
-    ordersStuckStitching,
-    ordersStuckQc,
-    overdueOrders,
-    paymentRiskOrders,
-    exceptionsCritical,
-    exceptionsHigh,
-    exceptionsMedium,
-    exceptionsLow,
-    bugsP0,
-    bugsP1,
-    bugsP2,
-    bugsP3,
+    ordersResult,
+    exceptionsResult,
+    bugsResult,
+    notificationsResult,
+    ticketsResult
   ] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(orders),
-    db.select({ count: sql<number>`count(*)` }).from(orders).where(or(eq(orders.paymentStatus, 'PAID'), eq(orders.paymentStatus, 'PARTIAL'))),
-    db.select({ count: sql<number>`count(*)` }).from(supportTickets),
-    db.select({ count: sql<number>`count(*)` }).from(exceptions),
-    db.select({ count: sql<number>`count(*)` }).from(notificationQueue).where(eq(notificationQueue.status, 'SENT')),
-    db.select({ count: sql<number>`count(*)` }).from(notificationQueue).where(eq(notificationQueue.status, 'FAILED')),
-
-    // Orders Stuck
-    db.select({ count: sql<number>`count(*)` }).from(orders).where(sql`production_status = 'CUTTING' AND EXTRACT(EPOCH FROM (NOW() - status_updated_at)) > 172800`), // 2 days
-    db.select({ count: sql<number>`count(*)` }).from(orders).where(sql`production_status = 'STITCHING' AND EXTRACT(EPOCH FROM (NOW() - status_updated_at)) > 259200`), // 3 days
-    db.select({ count: sql<number>`count(*)` }).from(orders).where(sql`production_status = 'QC_PENDING' AND EXTRACT(EPOCH FROM (NOW() - status_updated_at)) > 86400`), // 1 day
-
-    // Overdue Orders (assuming we use created_at + 10 days for due date approximation since due_date doesn't exist, wait, do we have due_date?)
-    db.select({ count: sql<number>`count(*)` }).from(orders).where(sql`status != 'DELIVERED' AND status != 'CANCELLED'`), // Need to mock this or use created_at
-    
-    // Payment Risk
-    db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.paymentStatus, 'PARTIAL')),
-    
-    // Exceptions Severity Breakdown (Assuming type maps to severity for now since exceptions table doesn't have severity field)
-    // Wait, exceptions doesn't have severity. We will mock it based on type.
-    db.select({ count: sql<number>`count(*)` }).from(exceptions).where(eq(exceptions.type, 'CRITICAL')),
-    db.select({ count: sql<number>`count(*)` }).from(exceptions).where(eq(exceptions.type, 'HIGH')),
-    db.select({ count: sql<number>`count(*)` }).from(exceptions).where(eq(exceptions.type, 'MEDIUM')),
-    db.select({ count: sql<number>`count(*)` }).from(exceptions).where(eq(exceptions.type, 'LOW')),
-
-    // Bug Registry Breakdown
-    db.select({ count: sql<number>`count(*)` }).from(bugRegistry).where(eq(bugRegistry.severity, 'P0')),
-    db.select({ count: sql<number>`count(*)` }).from(bugRegistry).where(eq(bugRegistry.severity, 'P1')),
-    db.select({ count: sql<number>`count(*)` }).from(bugRegistry).where(eq(bugRegistry.severity, 'P2')),
-    db.select({ count: sql<number>`count(*)` }).from(bugRegistry).where(eq(bugRegistry.severity, 'P3')),
+    db.execute(sql`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN payment_status IN ('PAID', 'PARTIAL') THEN 1 ELSE 0 END) as payments_recorded,
+        SUM(CASE WHEN payment_status = 'PARTIAL' THEN 1 ELSE 0 END) as payment_risk,
+        SUM(CASE WHEN production_status = 'CUTTING' AND EXTRACT(EPOCH FROM (NOW() - status_updated_at)) > 172800 THEN 1 ELSE 0 END) as stuck_cutting,
+        SUM(CASE WHEN production_status = 'STITCHING' AND EXTRACT(EPOCH FROM (NOW() - status_updated_at)) > 259200 THEN 1 ELSE 0 END) as stuck_stitching,
+        SUM(CASE WHEN production_status = 'QC_PENDING' AND EXTRACT(EPOCH FROM (NOW() - status_updated_at)) > 86400 THEN 1 ELSE 0 END) as stuck_qc,
+        SUM(CASE WHEN status NOT IN ('DELIVERED', 'CANCELLED') THEN 1 ELSE 0 END) as overdue_orders
+      FROM orders
+    `),
+    db.execute(sql`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN severity = 'CRITICAL' THEN 1 ELSE 0 END) as critical,
+        SUM(CASE WHEN severity = 'HIGH' THEN 1 ELSE 0 END) as high,
+        SUM(CASE WHEN severity = 'MEDIUM' THEN 1 ELSE 0 END) as medium,
+        SUM(CASE WHEN severity = 'LOW' THEN 1 ELSE 0 END) as low
+      FROM exceptions
+    `),
+    db.execute(sql`
+      SELECT 
+        SUM(CASE WHEN severity = 'P0' THEN 1 ELSE 0 END) as p0,
+        SUM(CASE WHEN severity = 'P1' THEN 1 ELSE 0 END) as p1,
+        SUM(CASE WHEN severity = 'P2' THEN 1 ELSE 0 END) as p2,
+        SUM(CASE WHEN severity = 'P3' THEN 1 ELSE 0 END) as p3
+      FROM bug_registry
+    `),
+    db.execute(sql`
+      SELECT 
+        SUM(CASE WHEN status = 'SENT' THEN 1 ELSE 0 END) as sent,
+        SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed
+      FROM notification_queue
+    `),
+    db.execute(sql`SELECT COUNT(*) as total FROM support_tickets`)
   ]);
 
-  const ordersStuck = Number(ordersStuckCutting[0].count) + Number(ordersStuckStitching[0].count) + Number(ordersStuckQc[0].count);
+  const executionTime = Date.now() - startTime;
+  console.log(`[Pilot Dashboard] Query execution time: ${executionTime}ms`);
+
+  const oStats = (ordersResult.rows || ordersResult)[0] as any;
+  const eStats = (exceptionsResult.rows || exceptionsResult)[0] as any;
+  const bStats = (bugsResult.rows || bugsResult)[0] as any;
+  const nStats = (notificationsResult.rows || notificationsResult)[0] as any;
+  const tStats = (ticketsResult.rows || ticketsResult)[0] as any;
+
+  const ordersStuck = Number(oStats?.stuck_cutting || 0) + Number(oStats?.stuck_stitching || 0) + Number(oStats?.stuck_qc || 0);
   
   // Health Indicator Logic
   let health = 'GREEN';
-  if (Number(bugsP0[0].count) > 0 || Number(paymentRiskOrders[0].count) > 5) {
+  if (Number(bStats?.p0 || 0) > 0 || Number(oStats?.payment_risk || 0) > 5) {
       health = 'RED'; // Red overrides
-  } else if (Number(bugsP1[0].count) > 0 || Number(exceptionsCritical[0].count) > 0) {
+  } else if (Number(bStats?.p1 || 0) > 0 || Number(eStats?.critical || 0) > 0) {
       health = 'YELLOW';
-  } else if (Number(failedNotifications[0].count) >= 5) {
+  } else if (Number(nStats?.failed || 0) >= 5) {
       health = 'YELLOW';
   }
 
   return {
     activity: {
-      ordersCreated: Number(ordersCreated[0].count),
-      paymentsRecorded: Number(paymentsRecorded[0].count),
-      supportTickets: Number(supportTicketsCount[0].count),
-      exceptions: Number(exceptionsCount[0].count),
-      notificationsSent: Number(notificationsSent[0].count),
-      failedNotifications: Number(failedNotifications[0].count),
+      ordersCreated: Number(oStats?.total || 0),
+      paymentsRecorded: Number(oStats?.payments_recorded || 0),
+      supportTickets: Number(tStats?.total || 0),
+      exceptions: Number(eStats?.total || 0),
+      notificationsSent: Number(nStats?.sent || 0),
+      failedNotifications: Number(nStats?.failed || 0),
       avgProgressionTime: '2.5 Days', // Mocked for now, requires complex audit log aggregation
     },
     risk: {
       ordersStuck,
-      overdueOrders: Number(overdueOrders[0].count), // Simplified
-      paymentRiskOrders: Number(paymentRiskOrders[0].count),
+      overdueOrders: Number(oStats?.overdue_orders || 0), // Simplified
+      paymentRiskOrders: Number(oStats?.payment_risk || 0),
       exceptions: {
-        critical: Number(exceptionsCritical[0].count),
-        high: Number(exceptionsHigh[0].count),
-        medium: Number(exceptionsMedium[0].count),
-        low: Number(exceptionsLow[0].count),
+        critical: Number(eStats?.critical || 0),
+        high: Number(eStats?.high || 0),
+        medium: Number(eStats?.medium || 0),
+        low: Number(eStats?.low || 0),
       }
     },
     bugs: {
-      p0: Number(bugsP0[0].count),
-      p1: Number(bugsP1[0].count),
-      p2: Number(bugsP2[0].count),
-      p3: Number(bugsP3[0].count),
+      p0: Number(bStats?.p0 || 0),
+      p1: Number(bStats?.p1 || 0),
+      p2: Number(bStats?.p2 || 0),
+      p3: Number(bStats?.p3 || 0),
     },
     health
   };

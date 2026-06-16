@@ -44,6 +44,7 @@ export function Customer360Drawer({
   payload?: CustomerProfilePayload;
   isOpen: boolean;
   onClose: () => void;
+  onUpdate?: () => void;
 }) {
   const activePayload = payload || {
     metrics: { ltv: 145000, totalOrders: 4 },
@@ -116,6 +117,7 @@ export function Customer360Drawer({
     if (res.success) {
       setActiveModal(null);
       alert('Payment Recorded');
+      if (onUpdate) onUpdate();
     } else alert('Error: ' + res.error);
   };
 
@@ -125,6 +127,7 @@ export function Customer360Drawer({
     if (res.success) {
       setActiveModal(null);
       alert('Measurements Saved');
+      if (onUpdate) onUpdate();
     } else alert('Error: ' + res.error);
   };
 

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { OrderCard } from './order-card';
-import { moveOrderAction, dispatchOrderAction } from '@/app/(staff)/actions/command-center';
+import { moveOrderAction, dispatchOrderAction, moveDispatchOrderAction } from '@/app/(staff)/actions/command-center';
 
 interface Order {
   id: string;
@@ -24,7 +24,7 @@ interface CommandCenterBoardProps {
 
 const COLUMNS = [
   { id: 'HOLD', label: 'Hold', color: 'bg-red-100 border-red-200', limit: 999 },
-  { id: 'MEASUREMENTS_PENDING', label: 'Measurements', color: 'bg-orange-100 border-orange-200', limit: 10 },
+  { id: 'MEASUREMENT_PENDING', label: 'Measurements', color: 'bg-orange-100 border-orange-200', limit: 10 },
   { id: 'CUTTING', label: 'Cutting', color: 'bg-yellow-100 border-yellow-200', limit: 10 },
   { id: 'STITCHING', label: 'Stitching', color: 'bg-blue-100 border-blue-200', limit: 10 },
   { id: 'FINISHING', label: 'Finishing', color: 'bg-indigo-100 border-indigo-200', limit: 10 },
@@ -70,6 +70,19 @@ export function CommandCenterBoard({ initialOrders }: CommandCenterBoardProps) {
 
     if (targetStatus === 'DISPATCHED') {
       setDispatchModalData({ orderId });
+      return;
+    }
+
+    if (targetStatus === 'PACKING') {
+      // Optimistic Update
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, dispatchStatus: targetStatus } : o));
+      startTransition(async () => {
+        const result = await moveDispatchOrderAction(orderId, targetStatus);
+        if (!result.success) {
+          alert(`Transition Failed: ${result.error}`);
+          setOrders(initialOrders);
+        }
+      });
       return;
     }
 

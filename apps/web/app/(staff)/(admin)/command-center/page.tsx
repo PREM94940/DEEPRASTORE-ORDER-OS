@@ -1,11 +1,17 @@
 import { CommandCenterBoard } from '@/components/command-center-board';
 import { OrderRepository } from '@deeprastore/infrastructure/src/repositories/OrderRepository';
 
+import { db } from '@deeprastore/infrastructure/src/db/client';
+import { sql } from 'drizzle-orm';
+
 export const dynamic = 'force-dynamic';
 
 export default async function CommandCenterPage() {
+  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
+  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
+  
   const orderRepo = new OrderRepository();
-  const rawOrders = await orderRepo.getProductionQueue('33333333-3333-3333-3333-333333333333');
+  const rawOrders = await orderRepo.getProductionQueue(tenantId);
   
   // Format orders to match the UI interface
   const orders = rawOrders.map(o => ({

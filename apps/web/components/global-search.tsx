@@ -5,23 +5,48 @@ import { Search, Loader2 } from "lucide-react";
 import { Customer360Drawer } from "./customer-360-drawer";
 import { useCustomer360Listener } from "@/hooks/useCustomer360";
 
+import { getCustomerProfileAction } from "@/app/(staff)/actions/customer";
+
 export function GlobalSearch() {
   const [query, setQuery] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [activePayload, setActivePayload] = React.useState<any>(null);
   
   const { selectedCustomerPhone, setSelectedCustomerPhone } = useCustomer360Listener();
 
-  const handleSearch = (e: React.FormEvent) => {
+  // If Drawer is closed via external trigger, clear the payload
+  React.useEffect(() => {
+    if (!selectedCustomerPhone) setActivePayload(null);
+  }, [selectedCustomerPhone]);
+
+  // Load payload when selectedCustomerPhone changes (e.g. clicked from OperationsGrid)
+  React.useEffect(() => {
+    if (selectedCustomerPhone && !activePayload && !loading) {
+      setLoading(true);
+      getCustomerProfileAction(selectedCustomerPhone).then((res) => {
+        if (res.success) setActivePayload(res.payload);
+        setLoading(false);
+      });
+    }
+  }, [selectedCustomerPhone]);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query) return;
     
     setLoading(true);
-    // Simulate search logic: Phone -> Business ID -> Order ID -> UTR -> Name
-    // In a real app this would hit an API. Here we just mock finding a customer by phone.
-    setTimeout(() => {
-      setLoading(false);
+    
+    // Attempt to load the customer payload immediately
+    const res = await getCustomerProfileAction(query);
+    if (res.success && res.payload) {
+      setActivePayload(res.payload);
       setSelectedCustomerPhone(query);
-    }, 400);
+    } else {
+      // If not found, you could show an error or open drawer empty for new customer creation
+      setSelectedCustomerPhone(query);
+    }
+    
+    setLoading(false);
   };
 
   return (
@@ -48,8 +73,18 @@ export function GlobalSearch() {
 
       <Customer360Drawer 
         phone={selectedCustomerPhone}
+        payload={activePayload}
         isOpen={!!selectedCustomerPhone}
         onClose={() => setSelectedCustomerPhone(null)}
+        onUpdate={() => {
+          if (selectedCustomerPhone) {
+            setLoading(true);
+            getCustomerProfileAction(selectedCustomerPhone).then((res) => {
+              if (res.success) setActivePayload(res.payload);
+              setLoading(false);
+            });
+          }
+        }}
       />
     </>
   );

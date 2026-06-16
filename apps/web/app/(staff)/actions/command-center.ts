@@ -3,6 +3,8 @@
 import { OrderRepository } from '@deeprastore/infrastructure/src/repositories/OrderRepository';
 import { revalidatePath } from 'next/cache';
 import { notifyOrderReady, notifyOrderDispatched, notifyOrderCreated, notifyPaymentReceived } from './notifications';
+import { db } from '@deeprastore/infrastructure/src/db/client';
+import { sql } from 'drizzle-orm';
 
 const orderRepo = new OrderRepository();
 
@@ -12,7 +14,8 @@ export async function moveOrderAction(
   reason: string = 'Drag and Drop',
   staffId: string = 'MasterJi01'
 ) {
-  const tenantId = '33333333-3333-3333-3333-333333333333'; // Hardcoded for V3 Pilot
+  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
+  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
 
   try {
     await orderRepo.updateOrderProductionStatusWithAudit(
@@ -40,7 +43,8 @@ export async function moveDispatchOrderAction(
   newStatus: string,
   staffId: string = 'MasterJi01'
 ) {
-  const tenantId = '33333333-3333-3333-3333-333333333333';
+  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
+  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
 
   try {
     await orderRepo.updateOrderDispatchStatusWithAudit(
@@ -64,7 +68,8 @@ export async function dispatchOrderAction(
   trackingId: string,
   staffId: string = 'MasterJi01'
 ) {
-  const tenantId = '33333333-3333-3333-3333-333333333333';
+  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
+  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
 
   try {
     await orderRepo.updateOrderDispatchStatusWithAudit(
@@ -94,7 +99,8 @@ export async function createOrderAction(data: {
   expectedDeliveryDate: string;
   primaryImageUrl: string;
 }, staffId: string = 'MasterJi01') {
-  const tenantId = '33333333-3333-3333-3333-333333333333';
+  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
+  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
 
   try {
     const order = await orderRepo.createOrder(null, {
@@ -126,7 +132,8 @@ export async function addPaymentAction(
   utr: string,
   staffId: string = 'MasterJi01'
 ) {
-  const tenantId = '33333333-3333-3333-3333-333333333333';
+  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
+  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
   try {
     await orderRepo.addPayment(null, tenantId, orderId, amount, staffId, utr);
     
