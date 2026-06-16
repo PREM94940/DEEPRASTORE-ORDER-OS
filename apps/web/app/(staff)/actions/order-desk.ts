@@ -4,6 +4,7 @@ import { db } from '@deeprastore/infrastructure';
 import { orders, enquiries, customers, payments } from '@deeprastore/infrastructure/src/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { notifyOrderCreated, notifyPaymentReceived } from './notifications';
 
 const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
@@ -36,7 +37,10 @@ export async function convertEnquiryToOrder(enquiryId: string) {
 
 export async function createUnifiedOrderAction(data: any) {
   try {
-    return await db.transaction(async (tx) => {
+    let orderResult;
+    let paymentAmount = 0;
+    
+    await db.transaction(async (tx) => {
       // 1. Find or create customer
       let customerId = data.customerId;
       
@@ -57,7 +61,7 @@ export async function createUnifiedOrderAction(data: any) {
       }
 
       // 2. Generate Order Number
-      const orderNumber = `DP-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+      const orderNumber = \DP-\-\\;
 
       // 3. Create Order
       const [newOrder] = await tx.insert(orders).values({
@@ -84,6 +88,8 @@ export async function createUnifiedOrderAction(data: any) {
         status: 'CONFIRMED', // Immediately confirmed on desk entry
         orderNumber,
       }).returning();
+      
+      orderResult = newOrder;
 
       // 4. Update Enquiry Status if this came from an enquiry
       if (data.enquiryId) {
@@ -94,6 +100,7 @@ export async function createUnifiedOrderAction(data: any) {
 
       // 5. Create Payment Record if advance is paid
       if (data.advanceAmount && Number(data.advanceAmount) > 0) {
+        paymentAmount = Number(data.advanceAmount);
         await tx.insert(payments).values({
           orderId: newOrder.id,
           amount: data.advanceAmount.toString(),
@@ -102,23 +109,30 @@ export async function createUnifiedOrderAction(data: any) {
           status: data.paymentMethod === 'CASH' ? 'VERIFIED' : 'PENDING',
         });
       }
-
-      revalidatePath('/pilot/order-desk');
-      
-      return { 
-        success: true, 
-        order: {
-          id: newOrder.id,
-          orderNumber: newOrder.orderNumber,
-          customerName: newOrder.customerName,
-          customerPhone: newOrder.customerPhone,
-          totalAmount: newOrder.totalAmount,
-          advanceAmount: newOrder.advanceAmount,
-          balanceAmount: newOrder.balanceAmount,
-          expectedDeliveryDate: newOrder.expectedDeliveryDate,
-        }
-      };
     });
+    
+    if (orderResult) {
+      await notifyOrderCreated(orderResult.customerPhone, orderResult.id, Number(orderResult.totalAmount), Number(orderResult.advanceAmount));
+      if (paymentAmount > 0) {
+        await notifyPaymentReceived(orderResult.customerPhone, orderResult.id, paymentAmount);
+      }
+    }
+
+    revalidatePath('/pilot/order-desk');
+    
+    return { 
+      success: true, 
+      order: {
+        id: orderResult.id,
+        orderNumber: orderResult.orderNumber,
+        customerName: orderResult.customerName,
+        customerPhone: orderResult.customerPhone,
+        totalAmount: orderResult.totalAmount,
+        advanceAmount: orderResult.advanceAmount,
+        balanceAmount: orderResult.balanceAmount,
+        expectedDeliveryDate: orderResult.expectedDeliveryDate,
+      }
+    };
   } catch (error) {
     console.error('Failed to create order:', error);
     return { success: false, error: 'Failed to create order' };
