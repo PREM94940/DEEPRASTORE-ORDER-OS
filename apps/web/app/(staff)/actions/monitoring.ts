@@ -8,16 +8,17 @@ const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
 export async function logSystemAlert(level: 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL', source: string, message: string, metadata?: any) {
   try {
-    await db.insert(systemAlerts).values({
-      tenantId: MOCK_TENANT_ID,
-      level,
-      source,
+    console.log(`[logSystemAlert] Attempting to insert alert: ${level} - ${source} - ${message}`);
+    const result = await db.insert(systemAlerts).values({
+      alertType: source,
+      severity: level,
       message,
       metadata: metadata || null,
-    });
+    }).returning();
+    console.log(`[logSystemAlert] Insert successful:`, result);
     return true;
   } catch (error) {
-    console.error('Failed to log system alert:', error);
+    console.error('[logSystemAlert] Failed to log system alert:', error);
     return false;
   }
 }

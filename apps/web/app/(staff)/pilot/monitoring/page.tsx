@@ -3,7 +3,14 @@ import { getRecentSystemAlerts } from '../../actions/monitoring';
 // Adding a dynamic flag since this fetches from DB on every load
 export const dynamic = 'force-dynamic';
 
-export default async function MonitoringPage() {
+export default async function MonitoringDashboard({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  if (searchParams.crash === 'true') {
+    throw new Error('MT-1 Validation Error');
+  }
   const alerts = await getRecentSystemAlerts();
 
   return (

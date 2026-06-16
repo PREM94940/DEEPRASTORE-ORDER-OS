@@ -41,6 +41,15 @@ export async function transitionOrderStatus(orderId: string, currentStatus: Orde
     timestamp: new Date().toISOString()
   };
 
+  // Actually update the database
+  const { db } = await import('@deeprastore/infrastructure/src/db/client');
+  const { orders } = await import('@deeprastore/infrastructure/src/schema/order');
+  const { eq } = await import('drizzle-orm');
+
+  await db.update(orders)
+    .set({ productionStatus: newStatus.toUpperCase(), statusUpdatedAt: new Date() })
+    .where(eq(orders.id, orderId));
+
   await syncTimelineEvent(timelineEvent);
 
   return timelineEvent;
@@ -48,4 +57,17 @@ export async function transitionOrderStatus(orderId: string, currentStatus: Orde
 
 export async function syncTimelineEvent(event: TimelineEvent): Promise<void> {
   console.log(`Timeline sync for order ${event.orderId}: Status updated to ${event.status} at ${event.timestamp}`);
+  
+  // MOCK SMS PROVIDER FOR PILOT / NT-1
+  const payload = {
+    provider: 'MockSMSProvider',
+    channel: 'WHATSAPP',
+    template: `ORDER_UPDATE_${event.status.toUpperCase()}`,
+    recipient: '+15555555555',
+    variables: { orderId: event.orderId, status: event.status }
+  };
+  console.log('--- RAW NOTIFICATION PAYLOAD START ---');
+  console.log(JSON.stringify(payload, null, 2));
+  console.log('--- RAW NOTIFICATION PAYLOAD END ---');
+  await logSystemAlert('INFO', 'NOTIFICATION', `Sent SMS/WhatsApp update for order ${event.orderId}`);
 }

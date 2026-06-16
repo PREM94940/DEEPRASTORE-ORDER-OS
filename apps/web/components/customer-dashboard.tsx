@@ -10,23 +10,22 @@ export function CustomerDashboard({ orders, phone }: { orders: Order[], phone: s
 
   // Define the timeline steps
   const steps = [
-    { key: 'CONFIRMED', label: 'Confirmed' },
-    { key: 'MEASUREMENTS_PENDING', label: 'Measurements' },
-    { key: 'IN_PRODUCTION', label: 'Stitching' },
-    { key: 'QUALITY_CHECK', label: 'QA Check' },
-    { key: 'READY_FOR_PICKUP', label: 'Ready' },
+    { key: 'NOT_STARTED', label: 'Confirmed' },
+    { key: 'MEASUREMENT_PENDING', label: 'Measurements' },
+    { key: 'CUTTING', label: 'Cutting' },
+    { key: 'STITCHING', label: 'Stitching' },
+    { key: 'FINISHING', label: 'Finishing' },
+    { key: 'READY', label: 'Ready' },
     { key: 'DELIVERED', label: 'Delivered' }
   ];
 
   // Helper to determine active step
   const getStepIndex = (status: string) => {
-    // If status isn't explicitly in the steps array, we might default it based on logic.
-    // Assuming these match standard statuses or we map them.
     const index = steps.findIndex(s => s.key === status);
-    return index >= 0 ? index : 0; // default to first if unknown
+    return index >= 0 ? index : 0;
   };
 
-  const currentStepIndex = getStepIndex(selectedOrder?.status || 'CONFIRMED');
+  const currentStepIndex = getStepIndex(selectedOrder?.productionStatus || 'NOT_STARTED');
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8">
