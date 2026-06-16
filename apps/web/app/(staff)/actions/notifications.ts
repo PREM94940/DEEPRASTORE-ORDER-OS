@@ -1,4 +1,3 @@
-'use server';
 
 import { NotificationService } from '@deeprastore/infrastructure/src/services/notification_service';
 
@@ -9,12 +8,12 @@ export interface SMSProvider {
 
 export class MockSMSProvider implements SMSProvider {
   async sendSMS(to: string, message: string): Promise<boolean> {
-    console.log([MockSMSProvider] Sending SMS to : );
+    console.log(`[MockSMSProvider] Sending SMS to ${to}: ${message}`);
     return true;
   }
 
   async sendWhatsApp(to: string, message: string, templateId?: string): Promise<boolean> {
-    console.log([MockSMSProvider] Sending WhatsApp to  [Template: ]: );
+    console.log(`[MockSMSProvider] Sending WhatsApp to ${to} [Template: ${templateId}]: ${message}`);
     return true;
   }
 }
@@ -23,16 +22,16 @@ export const smsProvider = new MockSMSProvider();
 
 export const NotificationTemplates = {
   ORDER_CREATED: (orderNumber: string, amount: number, advance: number) => 
-    Hello! Your order  has been successfully created. Total: ?. Advance Received: ?. Thank you for choosing us!,
+    `Hello! Your order ${orderNumber} has been successfully created. Total: ₹${amount}. Advance Received: ₹${advance}. Thank you for choosing us!`,
     
   ORDER_READY: (orderNumber: string) => 
-    Great news! Your order  is READY for dispatch/pickup.,
+    `Great news! Your order ${orderNumber} is READY for dispatch/pickup.`,
     
   ORDER_DISPATCHED: (orderNumber: string, courierName: string, trackingId: string) => 
-    Your order  has been dispatched via . Tracking ID: .,
+    `Your order ${orderNumber} has been dispatched via ${courierName}. Tracking ID: ${trackingId}.`,
     
   PAYMENT_RECEIVED: (orderNumber: string, amount: number) => 
-    We have received a payment of ? for your order . Thank you!
+    `We have received a payment of ₹${amount} for your order ${orderNumber}. Thank you!`
 };
 
 export async function notifyOrderCreated(phone: string, orderNumber: string, totalAmount: number, advanceAmount: number) {

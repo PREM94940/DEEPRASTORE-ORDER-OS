@@ -60,8 +60,7 @@ export async function createUnifiedOrderAction(data: any) {
         }
       }
 
-      // 2. Generate Order Number
-      const orderNumber = \DP-\-\\;
+      const orderNumber = `DP-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
       // 3. Create Order
       const [newOrder] = await tx.insert(orders).values({
