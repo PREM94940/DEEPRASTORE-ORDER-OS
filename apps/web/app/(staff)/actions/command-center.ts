@@ -2,7 +2,7 @@
 
 import { OrderRepository } from '@deeprastore/infrastructure/src/repositories/OrderRepository';
 import { revalidatePath } from 'next/cache';
-import { NotificationService } from '@deeprastore/infrastructure/src/services/notification_service';
+import { notifyOrderReady, notifyOrderDispatched, notifyOrderCreated, notifyPaymentReceived } from './notifications';
 
 const orderRepo = new OrderRepository();
 
@@ -25,12 +25,7 @@ export async function moveOrderAction(
     );
     
     if (newStatus === 'READY') {
-      await NotificationService.queueMessage({
-        channel: 'WHATSAPP',
-        recipient: 'CUSTOMER_PHONE', // Requires fetching phone, but for proof we just pass placeholder
-        messageTemplateId: 'ORDER_READY',
-        messageBody: `Your order ${orderId} is READY for dispatch.`,
-      });
+      await notifyOrderReady('CUSTOMER_PHONE', orderId);
     }
     
     revalidatePath('/command-center');
@@ -81,12 +76,7 @@ export async function dispatchOrderAction(
       { courierName, trackingId, dispatchDate: new Date() }
     );
 
-    await NotificationService.queueMessage({
-      channel: 'WHATSAPP',
-      recipient: 'CUSTOMER_PHONE',
-      messageTemplateId: 'ORDER_DISPATCHED',
-      messageBody: `Your order ${orderId} has been DISPATCHED via ${courierName}. Tracking: ${trackingId}`,
-    });
+    await notifyOrderDispatched('CUSTOMER_PHONE', orderId, courierName, trackingId);
     
     revalidatePath('/command-center');
     return { success: true };
@@ -121,13 +111,7 @@ export async function createOrderAction(data: {
       await orderRepo.addPayment(null, tenantId, order.id, data.advanceAmount, staffId, 'ADVANCE_PAYMENT');
     }
     
-    await NotificationService.queueMessage({
-      channel: 'WHATSAPP',
-      recipient: data.customerPhone,
-      customerPhone: data.customerPhone,
-      messageTemplateId: 'ORDER_CREATED',
-      messageBody: `Order created. Total: ${data.totalAmount}, Advance: ${data.advanceAmount}.`,
-    });
+    await notifyOrderCreated(data.customerPhone, order.id, data.totalAmount, data.advanceAmount);
     
     revalidatePath('/command-center');
     return { success: true, orderId: order.id };
@@ -146,12 +130,7 @@ export async function addPaymentAction(
   try {
     await orderRepo.addPayment(null, tenantId, orderId, amount, staffId, utr);
     
-    await NotificationService.queueMessage({
-      channel: 'WHATSAPP',
-      recipient: 'CUSTOMER_PHONE',
-      messageTemplateId: 'PAYMENT_RECEIVED',
-      messageBody: `Payment of ${amount} received for order ${orderId}.`,
-    });
+    await notifyPaymentReceived('CUSTOMER_PHONE', orderId, amount);
 
     revalidatePath('/command-center');
     return { success: true };

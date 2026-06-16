@@ -1,0 +1,60 @@
+'use server';
+
+import { NotificationService } from '@deeprastore/infrastructure/src/services/notification_service';
+
+export interface SMSProvider {
+  sendSMS(to: string, message: string): Promise<boolean>;
+  sendWhatsApp(to: string, message: string, templateId?: string): Promise<boolean>;
+}
+
+export class MockSMSProvider implements SMSProvider {
+  async sendSMS(to: string, message: string): Promise<boolean> {
+    console.log([MockSMSProvider] Sending SMS to : );
+    return true;
+  }
+
+  async sendWhatsApp(to: string, message: string, templateId?: string): Promise<boolean> {
+    console.log([MockSMSProvider] Sending WhatsApp to  [Template: ]: );
+    return true;
+  }
+}
+
+export const smsProvider = new MockSMSProvider();
+
+export const NotificationTemplates = {
+  ORDER_CREATED: (orderNumber: string, amount: number, advance: number) => 
+    Hello! Your order  has been successfully created. Total: ?. Advance Received: ?. Thank you for choosing us!,
+    
+  ORDER_READY: (orderNumber: string) => 
+    Great news! Your order  is READY for dispatch/pickup.,
+    
+  ORDER_DISPATCHED: (orderNumber: string, courierName: string, trackingId: string) => 
+    Your order  has been dispatched via . Tracking ID: .,
+    
+  PAYMENT_RECEIVED: (orderNumber: string, amount: number) => 
+    We have received a payment of ? for your order . Thank you!
+};
+
+export async function notifyOrderCreated(phone: string, orderNumber: string, totalAmount: number, advanceAmount: number) {
+  const messageBody = NotificationTemplates.ORDER_CREATED(orderNumber, totalAmount, advanceAmount);
+  await NotificationService.queueMessage({ channel: 'WHATSAPP', recipient: phone, customerPhone: phone, messageTemplateId: 'ORDER_CREATED', messageBody });
+  await smsProvider.sendWhatsApp(phone, messageBody, 'ORDER_CREATED');
+}
+
+export async function notifyOrderReady(phone: string, orderNumber: string) {
+  const messageBody = NotificationTemplates.ORDER_READY(orderNumber);
+  await NotificationService.queueMessage({ channel: 'WHATSAPP', recipient: phone, customerPhone: phone, messageTemplateId: 'ORDER_READY', messageBody });
+  await smsProvider.sendWhatsApp(phone, messageBody, 'ORDER_READY');
+}
+
+export async function notifyOrderDispatched(phone: string, orderNumber: string, courierName: string, trackingId: string) {
+  const messageBody = NotificationTemplates.ORDER_DISPATCHED(orderNumber, courierName, trackingId);
+  await NotificationService.queueMessage({ channel: 'WHATSAPP', recipient: phone, customerPhone: phone, messageTemplateId: 'ORDER_DISPATCHED', messageBody });
+  await smsProvider.sendWhatsApp(phone, messageBody, 'ORDER_DISPATCHED');
+}
+
+export async function notifyPaymentReceived(phone: string, orderNumber: string, amount: number) {
+  const messageBody = NotificationTemplates.PAYMENT_RECEIVED(orderNumber, amount);
+  await NotificationService.queueMessage({ channel: 'WHATSAPP', recipient: phone, customerPhone: phone, messageTemplateId: 'PAYMENT_RECEIVED', messageBody });
+  await smsProvider.sendWhatsApp(phone, messageBody, 'PAYMENT_RECEIVED');
+}
