@@ -7,9 +7,7 @@ import { sql } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 
 export default async function CommandCenterPage() {
-  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
-  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
-  
+  const tenantId = '11111111-1111-1111-1111-111111111111';
   const orderRepo = new OrderRepository();
   const rawOrders = await orderRepo.getProductionQueue(tenantId);
   

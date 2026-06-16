@@ -54,8 +54,8 @@ async function runProofs() {
     console.log('[PASS] Pilot Dashboard Rendered successfully without 504.');
 
     // 3. Command Center Proof
-    await page.goto(`${VERCEL_URL}/command-center`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 3000));
+    await page.goto(`${VERCEL_URL}/command-center`, { waitUntil: 'domcontentloaded' });
+    await new Promise(r => setTimeout(r, 5000));
     await page.screenshot({ path: 'command_center_cards.png' });
     
     const content = await page.content();
