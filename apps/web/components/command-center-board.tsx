@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { OrderCard } from './order-card';
-import { moveOrderAction, dispatchOrderAction } from '../app/actions/command-center';
+import { moveOrderAction, dispatchOrderAction } from '@/app/(staff)/actions/command-center';
 
 interface Order {
   id: string;

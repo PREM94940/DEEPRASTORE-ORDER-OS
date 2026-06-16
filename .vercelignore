@@ -1,0 +1,9 @@
+.next
+node_modules
+dist
+.git
+.turbo
+apps/**/.next
+apps/**/node_modules
+packages/**/node_modules
+packages/**/dist

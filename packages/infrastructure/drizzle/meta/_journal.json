@@ -15,6 +15,20 @@
       "when": 1781504308498,
       "tag": "0001_bright_stature",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781589569866,
+      "tag": "0002_cynical_scourge",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781591487743,
+      "tag": "0003_neat_fallen_one",
+      "breakpoints": true
     }
   ]
 }

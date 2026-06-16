@@ -5,8 +5,8 @@ import {
   X, User, ShoppingBag, CreditCard, Ruler, LifeBuoy, FileText, Image as ImageIcon, Link2, 
   AlertTriangle, Star, RefreshCcw, Clock, PlusCircle
 } from "lucide-react";
-import { createOrderAction, addPaymentAction } from "../app/actions/command-center";
-import { updateMeasurementsAction } from "../app/actions/customer";
+import { createOrderAction, addPaymentAction } from "@/app/(staff)/actions/command-center";
+import { updateMeasurementsAction } from "@/app/(staff)/actions/customer";
 
 export interface CustomerProfilePayload {
   metrics: { ltv: number; totalOrders: number };
@@ -72,7 +72,7 @@ export function Customer360Drawer({
     if (!phone || !complaintForm.title || !complaintForm.description) return;
     
     // Dynamically importing to avoid circular dep issues in some setups, but direct import is fine too.
-    const { createTicket } = await import('../app/actions/support');
+    const { createTicket } = await import('@/app/(staff)/actions/support');
     const res = await createTicket({
       customerPhone: phone,
       orderId: activePayload?.recentOrders?.[0]?.id,

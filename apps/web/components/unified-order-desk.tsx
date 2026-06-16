@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createUnifiedOrderAction } from '@/app/actions/order-desk';
+import { createUnifiedOrderAction } from '@/app/(staff)/actions/order-desk';
 import { uploadFilesToSupabase } from '@/lib/upload';
 
 export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
