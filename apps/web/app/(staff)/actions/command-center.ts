@@ -14,8 +14,7 @@ export async function moveOrderAction(
   reason: string = 'Drag and Drop',
   staffId: string = 'MasterJi01'
 ) {
-  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
-  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
+  const tenantId = '11111111-1111-1111-1111-111111111111';
 
   try {
     await orderRepo.updateOrderProductionStatusWithAudit(
@@ -43,8 +42,7 @@ export async function moveDispatchOrderAction(
   newStatus: string,
   staffId: string = 'MasterJi01'
 ) {
-  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
-  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
+  const tenantId = '11111111-1111-1111-1111-111111111111';
 
   try {
     await orderRepo.updateOrderDispatchStatusWithAudit(
@@ -68,8 +66,7 @@ export async function dispatchOrderAction(
   trackingId: string,
   staffId: string = 'MasterJi01'
 ) {
-  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
-  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
+  const tenantId = '11111111-1111-1111-1111-111111111111';
 
   try {
     await orderRepo.updateOrderDispatchStatusWithAudit(
@@ -99,8 +96,7 @@ export async function createOrderAction(data: {
   expectedDeliveryDate: string;
   primaryImageUrl: string;
 }, staffId: string = 'MasterJi01') {
-  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
-  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
+  const tenantId = '11111111-1111-1111-1111-111111111111';
 
   try {
     const order = await orderRepo.createOrder(null, {
@@ -132,8 +128,7 @@ export async function addPaymentAction(
   utr: string,
   staffId: string = 'MasterJi01'
 ) {
-  const firstTenant = await db.execute(sql`SELECT id FROM tenants LIMIT 1`);
-  const tenantId = (firstTenant.rows?.[0] as any)?.id || '33333333-3333-3333-3333-333333333333';
+  const tenantId = '11111111-1111-1111-1111-111111111111';
   try {
     await orderRepo.addPayment(null, tenantId, orderId, amount, staffId, utr);
     
