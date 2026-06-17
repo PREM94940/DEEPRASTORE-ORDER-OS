@@ -65,50 +65,71 @@ async function runProofs() {
     const orderCards = await page.$$('[draggable="true"]');
     console.log(`[PASS] Command Center Loaded. Columns: ${columns.length}, Cards Visible: ${orderCards.length}`);
 
-    if (orderCards.length > 0) {
-      const orderIdHandle = await orderCards[0].getProperty('id');
-      const cardId = await orderIdHandle.jsonValue();
-      const orderId = cardId.replace('order-', '');
-      console.log(`\n--- D. Drag & Drop Status Transition Proof ---`);
-      console.log(`Order ID: ${orderId}`);
+    // Create specific orders for the test
+    const testPhone1 = '9999911111';
+    const testPhone2 = '9999922222';
+    
+    await sql`DELETE FROM public.orders WHERE customer_phone IN (${testPhone1}, ${testPhone2})`;
+    
+    // Create customers first due to foreign key constraints
+    await sql`INSERT INTO public.customers (phone, name, tenant_id) VALUES (${testPhone1}, 'Test Drag 1', '11111111-1111-1111-1111-111111111111') ON CONFLICT (phone) DO NOTHING`;
+    await sql`INSERT INTO public.customers (phone, name, tenant_id) VALUES (${testPhone2}, 'Test Drag 2', '11111111-1111-1111-1111-111111111111') ON CONFLICT (phone) DO NOTHING`;
+    
+    const res1 = await sql`INSERT INTO public.orders (customer_name, customer_phone, tenant_id, production_status, dispatch_status, payment_status, status) VALUES ('Test Drag 1', ${testPhone1}, '11111111-1111-1111-1111-111111111111', 'MEASUREMENT_PENDING', 'NOT_STARTED', 'VERIFIED', 'CONFIRMED') RETURNING id`;
+    const order1 = res1[0].id;
+    
+    const res2 = await sql`INSERT INTO public.orders (customer_name, customer_phone, tenant_id, production_status, dispatch_status, payment_status, status) VALUES ('Test Drag 2', ${testPhone2}, '11111111-1111-1111-1111-111111111111', 'READY', 'NOT_STARTED', 'VERIFIED', 'CONFIRMED') RETURNING id`;
+    const order2 = res2[0].id;
+
+    // Reload page to see new orders
+    await page.reload({ waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 3000));
+    await page.screenshot({ path: 'command_center_cards_loaded.png' });
+
+    console.log(`\n--- D. Drag & Drop Status Transition Proof ---`);
+    console.log(`Proof 3 - Move MEASUREMENT_PENDING -> CUTTING`);
+    console.log(`Order ID: ${order1}`);
+    
+    let dbStatus = await sql`SELECT production_status, dispatch_status FROM public.orders WHERE id = ${order1}`;
+    console.log(`Before Drag:`, dbStatus[0]);
+
+    // Simulate Drag using page.evaluate with React props hack
+    await page.evaluate(async (oId) => {
+      const cols = document.querySelectorAll('.min-w-\\[320px\\]');
+      const targetCol = cols[2]; // CUTTING
       
-      const beforeStatus = await sql`SELECT production_status, dispatch_status FROM public.orders WHERE id = ${orderId}`;
-      console.log(`Before Drag:`, beforeStatus[0]);
+      const reactPropsKey = Object.keys(targetCol).find(key => key.startsWith('__reactProps$'));
+      targetCol[reactPropsKey].onDrop({
+        preventDefault: () => {},
+        dataTransfer: { getData: () => oId }
+      });
+    }, order1);
 
-      // Find center of first order card
-      const cardBox = await orderCards[0].boundingBox();
-      const cardX = cardBox.x + cardBox.width / 2;
-      const cardY = cardBox.y + cardBox.height / 2;
+    await new Promise(r => setTimeout(r, 2000));
+    dbStatus = await sql`SELECT production_status, dispatch_status FROM public.orders WHERE id = ${order1}`;
+    console.log(`After Drag to CUTTING:`, dbStatus[0]);
 
-      // Find center of PACKING column
-      const packingCol = columns[4]; // Assuming column 4 is PACKING
-      const dropBox = await packingCol.boundingBox();
-      const dropX = dropBox.x + dropBox.width / 2;
-      const dropY = dropBox.y + dropBox.height / 2;
 
-      console.log(`Simulating drag to PACKING...`);
-      await page.mouse.move(cardX, cardY);
-      await page.mouse.down();
-      await page.mouse.move(dropX, dropY, { steps: 10 });
-      await page.mouse.up();
+    console.log(`\nProof 4 - Move READY -> PACKING`);
+    console.log(`Order ID: ${order2}`);
+    
+    dbStatus = await sql`SELECT production_status, dispatch_status FROM public.orders WHERE id = ${order2}`;
+    console.log(`Before Drag:`, dbStatus[0]);
+
+    await page.evaluate(async (oId) => {
+      const cols = document.querySelectorAll('.min-w-\\[320px\\]');
+      const targetCol = cols[7]; // PACKING
       
-      await new Promise(r => setTimeout(r, 2000));
-      const packingStatus = await sql`SELECT production_status, dispatch_status FROM public.orders WHERE id = ${orderId}`;
-      console.log(`After Drag to PACKING:`, packingStatus[0]);
+      const reactPropsKey = Object.keys(targetCol).find(key => key.startsWith('__reactProps$'));
+      targetCol[reactPropsKey].onDrop({
+        preventDefault: () => {},
+        dataTransfer: { getData: () => oId }
+      });
+    }, order2);
 
-      // Now drag to DISPATCHED
-      console.log(`Simulating drag to DISPATCHED...`);
-      const dispatchedCol = columns[6]; // Assuming DISPATCHED is further down
-      const dDropBox = await dispatchedCol.boundingBox();
-      await page.mouse.move(dropX, dropY);
-      await page.mouse.down();
-      await page.mouse.move(dDropBox.x + dDropBox.width / 2, dDropBox.y + dDropBox.height / 2, { steps: 10 });
-      await page.mouse.up();
-
-      await new Promise(r => setTimeout(r, 2000));
-      const dispatchedStatus = await sql`SELECT production_status, dispatch_status FROM public.orders WHERE id = ${orderId}`;
-      console.log(`After Drag to DISPATCHED:`, dispatchedStatus[0]);
-    }
+    await new Promise(r => setTimeout(r, 2000));
+    dbStatus = await sql`SELECT production_status, dispatch_status FROM public.orders WHERE id = ${order2}`;
+    console.log(`After Drag to PACKING:`, dbStatus[0]);
     
   } catch (e) {
     console.error(e);

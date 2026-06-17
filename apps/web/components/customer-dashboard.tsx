@@ -16,16 +16,25 @@ export function CustomerDashboard({ orders, phone }: { orders: Order[], phone: s
     { key: 'STITCHING', label: 'Stitching' },
     { key: 'FINISHING', label: 'Finishing' },
     { key: 'READY', label: 'Ready' },
-    { key: 'DELIVERED', label: 'Delivered' }
+    { key: 'PACKING', label: 'Packing' },
+    { key: 'DISPATCHED', label: 'Dispatched' }
   ];
 
   // Helper to determine active step
+  const getActiveStatus = (order: Order) => {
+    if (order.dispatchStatus === 'DISPATCHED') return 'DISPATCHED';
+    if (order.dispatchStatus === 'PACKING') return 'PACKING';
+    if (order.productionStatus === 'HOLD') return 'HOLD';
+    return order.productionStatus || 'NOT_STARTED';
+  };
+
+  const activeStatus = getActiveStatus(selectedOrder);
   const getStepIndex = (status: string) => {
     const index = steps.findIndex(s => s.key === status);
     return index >= 0 ? index : 0;
   };
 
-  const currentStepIndex = getStepIndex(selectedOrder?.productionStatus || 'NOT_STARTED');
+  const currentStepIndex = activeStatus === 'HOLD' ? -1 : getStepIndex(activeStatus);
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8">

@@ -144,31 +144,108 @@ export class OrderRepository implements IOrderRepository {
     return result;
   }
 
+  // CANONICAL STATE MACHINE (Source of Truth)
+  readonly validTransitions: Record<string, string[]> = {
+    'PENDING': ['MEASUREMENT_PENDING', 'CONFIRMED'],
+    'CONFIRMED': ['MEASUREMENT_PENDING', 'HOLD'],
+    'MEASUREMENT_PENDING': ['CUTTING', 'HOLD'],
+    'CUTTING': ['STITCHING', 'HOLD'],
+    'STITCHING': ['FINISHING', 'HOLD'],
+    'FINISHING': ['QC_PENDING', 'HOLD'],
+    'QC_PENDING': ['READY', 'HOLD'],
+    'READY': ['HOLD'],
+    'HOLD': ['MEASUREMENT_PENDING', 'CUTTING', 'STITCHING', 'FINISHING', 'QC_PENDING', 'READY']
+  };
+
   async updateOrderProductionStatus(tx: any, tenantId: string, id: string, newStatus: string): Promise<Order> {
     const order = await this.getOrderById(tenantId, id);
     if (!order) throw new Error('Order not found');
 
-    const validTransitions: Record<string, string[]> = {
-      'PENDING': ['STITCHING'],
-      'CONFIRMED': ['STITCHING', 'PENDING'],
-      'STITCHING': ['READY'],
-      'READY': ['DELIVERED'],
-      'DELIVERED': []
-    };
-
-    const currentStatus = order.status;
+    const currentStatus = order.productionStatus || 'NOT_STARTED';
     
     // Check if transition is valid
-    if (!validTransitions[currentStatus]?.includes(newStatus)) {
+    if (currentStatus !== 'NOT_STARTED' && !this.validTransitions[currentStatus]?.includes(newStatus)) {
       throw new Error(`Invalid state transition from ${currentStatus} to ${newStatus}`);
     }
 
     const client = tx || db;
     await client.update(orders).set({ 
-      status: newStatus,
+      productionStatus: newStatus,
       updatedAt: new Date()
     }).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
     
+    return this.getOrderById(tenantId, id) as any;
+  }
+
+  async updateOrderProductionStatusWithAudit(tx: any, tenantId: string, id: string, newStatus: string, reason: string, staffId: string): Promise<Order> {
+    const client = tx || db;
+    const order = await this.getOrderById(tenantId, id);
+    if (!order) throw new Error('Order not found');
+    
+    const oldStatus = order.productionStatus;
+    const updatedOrder = await this.updateOrderProductionStatus(client, tenantId, id, newStatus);
+    
+    // Write to audit_logs table
+    await client.execute(sql`
+      INSERT INTO audit_logs (id, table_name, record_id, action, old_data, new_data, staff_id, created_at)
+      VALUES (
+        gen_random_uuid(),
+        'orders',
+        ${id},
+        'PRODUCTION_STATUS_UPDATE',
+        ${JSON.stringify({ production_status: oldStatus })},
+        ${JSON.stringify({ production_status: newStatus, reason })},
+        ${staffId},
+        now()
+      )
+    `);
+
+    return updatedOrder;
+  }
+
+  async updateOrderDispatchStatusWithAudit(tx: any, tenantId: string, id: string, newStatus: string, staffId: string, details?: any): Promise<Order> {
+    const client = tx || db;
+    const order = await this.getOrderById(tenantId, id);
+    if (!order) throw new Error('Order not found');
+
+    const validDispatchTransitions: Record<string, string[]> = {
+      'NOT_STARTED': ['PACKING'],
+      'PACKING': ['DISPATCHED'],
+      'DISPATCHED': []
+    };
+
+    const oldStatus = order.dispatchStatus || 'NOT_STARTED';
+    if (!validDispatchTransitions[oldStatus]?.includes(newStatus)) {
+      throw new Error(`Invalid dispatch transition from ${oldStatus} to ${newStatus}`);
+    }
+
+    const updateData: any = {
+      dispatchStatus: newStatus,
+      updatedAt: new Date()
+    };
+
+    if (details) {
+      if (details.courierName) updateData.courierName = details.courierName;
+      if (details.trackingId) updateData.trackingId = details.trackingId;
+      if (details.dispatchDate) updateData.dispatchDate = details.dispatchDate;
+    }
+
+    await client.update(orders).set(updateData).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
+
+    await client.execute(sql`
+      INSERT INTO audit_logs (id, table_name, record_id, action, old_data, new_data, staff_id, created_at)
+      VALUES (
+        gen_random_uuid(),
+        'orders',
+        ${id},
+        'DISPATCH_STATUS_UPDATE',
+        ${JSON.stringify({ dispatch_status: oldStatus })},
+        ${JSON.stringify({ dispatch_status: newStatus, ...details })},
+        ${staffId},
+        now()
+      )
+    `);
+
     return this.getOrderById(tenantId, id) as any;
   }
 
