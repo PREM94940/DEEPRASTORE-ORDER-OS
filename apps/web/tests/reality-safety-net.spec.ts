@@ -43,7 +43,7 @@ test.describe.serial('Phase P0.5 Safety Net Audit', () => {
     const [order] = await db.insert(orders).values({
       tenantId,
       customerPhone: '9876543210',
-      status: 'PACKING',
+      status: 'READY_TO_SHIP',
       totalAmount: 1000,
       advanceAmount: 500,
       balanceAmount: 500,

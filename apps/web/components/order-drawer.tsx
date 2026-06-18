@@ -1,7 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { X, ExternalLink, Image as ImageIcon, MessageCircle } from "lucide-react";
+import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck } from "lucide-react";
+import { moveOrderAction, moveDispatchOrderAction, dispatchOrderAction } from "@/app/(staff)/actions/command-center";
+import { useCustomer360 } from "@/hooks/useCustomer360";
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  'DRAFT': ['PENDING_VERIFICATION', 'CANCELLED'],
+  'PENDING_VERIFICATION': ['CONFIRMED', 'PAYMENT_REJECTED', 'CANCELLED'],
+  'PAYMENT_REJECTED': ['PENDING_VERIFICATION', 'CANCELLED'],
+  'CONFIRMED': ['CUTTING', 'HOLD', 'CANCELLED'],
+  'CUTTING': ['STITCHING', 'HOLD', 'CANCELLED'],
+  'STITCHING': ['QC', 'HOLD', 'CANCELLED'],
+  'QC': ['READY_TO_SHIP', 'HOLD', 'CANCELLED'],
+  'READY_TO_SHIP': ['DISPATCHED', 'HOLD', 'CANCELLED'],
+  'DISPATCHED': ['DELIVERED', 'CANCELLED'],
+  'DELIVERED': [],
+  'CANCELLED': [],
+  'HOLD': ['CONFIRMED', 'CUTTING', 'STITCHING', 'QC', 'READY_TO_SHIP', 'CANCELLED']
+};
 
 export function OrderDrawer({
   order,
@@ -12,13 +29,90 @@ export function OrderDrawer({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const { openCustomer360 } = useCustomer360();
+  const [transitioning, setTransitioning] = React.useState(false);
+  const [showDispatchForm, setShowDispatchForm] = React.useState(false);
+  const [courierName, setCourierName] = React.useState("");
+  const [trackingId, setTrackingId] = React.useState("");
+
+  React.useEffect(() => {
+    setShowDispatchForm(false);
+    setCourierName("");
+    setTrackingId("");
+  }, [order]);
+
   if (!isOpen || !order) return null;
+
+  const currentStatus = order.status || 'DRAFT';
+  const nextOptions = VALID_TRANSITIONS[currentStatus] || [];
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!newStatus) return;
+
+    if (newStatus === 'DISPATCHED') {
+      setShowDispatchForm(true);
+      return;
+    }
+
+    // Strict Gatekeeper Rule
+    if (['CUTTING', 'STITCHING', 'QC', 'READY_TO_SHIP'].includes(newStatus)) {
+      if (order.paymentStatus !== 'VERIFIED') {
+        alert("Payment must be verified before production can begin.");
+        return;
+      }
+    }
+
+    setTransitioning(true);
+    try {
+      let res;
+      if (['DISPATCHED', 'DELIVERED'].includes(newStatus)) {
+        res = await moveDispatchOrderAction(order.id, newStatus);
+      } else {
+        res = await moveOrderAction(order.id, newStatus, `Transitioned to ${newStatus}`);
+      }
+
+      if (res.success) {
+        alert(`Status updated to ${newStatus}`);
+        window.location.reload();
+      } else {
+        alert(`Failed to update status: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setTransitioning(false);
+    }
+  };
+
+  const handleDispatchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!courierName || !trackingId) {
+      alert("Courier Name and Tracking ID are mandatory for dispatching.");
+      return;
+    }
+
+    setTransitioning(true);
+    try {
+      const res = await dispatchOrderAction(order.id, courierName, trackingId);
+      if (res.success) {
+        alert("Order dispatched successfully!");
+        window.location.reload();
+      } else {
+        alert(`Failed to dispatch: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setTransitioning(false);
+      setShowDispatchForm(false);
+    }
+  };
 
   return (
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
       />
       
@@ -29,7 +123,7 @@ export function OrderDrawer({
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/50 bg-zinc-900/30">
           <div>
             <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-              {order.businessId || order.id.slice(0, 8)}
+              {order.orderNumber || order.businessId || order.id.slice(0, 8)}
               <span className="text-xs font-normal px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
                 {order.source}
               </span>
@@ -67,7 +161,13 @@ export function OrderDrawer({
           <div>
             <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 flex items-center justify-between">
               Customer
-              <button className="text-blue-400 hover:text-blue-300 flex items-center gap-1 normal-case tracking-normal text-xs">
+              <button 
+                onClick={() => {
+                  onClose();
+                  openCustomer360(order.customerPhone);
+                }}
+                className="text-blue-400 hover:text-blue-300 flex items-center gap-1 normal-case tracking-normal text-xs"
+              >
                 View 360 <ExternalLink size={12} />
               </button>
             </h3>
@@ -80,9 +180,14 @@ export function OrderDrawer({
                 <span className="text-zinc-400">Phone</span>
                 <span className="font-medium text-zinc-100">{order.customerPhone}</span>
               </div>
-              <button className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-md bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 transition-colors border border-[#25D366]/20">
+              <a 
+                href={`https://wa.me/${order.customerPhone.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-md bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 transition-colors border border-[#25D366]/20 font-semibold text-center"
+              >
                 <MessageCircle size={16} /> Open WhatsApp Chat
-              </button>
+              </a>
             </div>
           </div>
 
@@ -96,35 +201,93 @@ export function OrderDrawer({
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-zinc-400">Payment Status</span>
-                <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-900/30 text-emerald-400 border border-emerald-900">
+                <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${order.paymentStatus === 'VERIFIED' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900' : 'bg-amber-900/30 text-amber-500 border border-amber-900'}`}>
                   {order.paymentStatus}
                 </div>
-              </div>
-              <div className="pt-3 mt-3 border-t border-zinc-800">
-                <button className="w-full text-center text-xs text-blue-400 hover:text-blue-300">
-                  View Payment Screenshot →
-                </button>
               </div>
             </div>
           </div>
 
           {/* Operational Status */}
           <div>
-            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Lifecycle</h3>
-            <div className="flex flex-col gap-2">
-              <select className="w-full bg-zinc-900 border border-zinc-800 rounded-md py-2 px-3 text-zinc-100 outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="DRAFT">DRAFT</option>
-                <option value="PAYMENT_PENDING">PAYMENT_PENDING</option>
-                <option value="VERIFIED">VERIFIED</option>
-                <option value="IN_PRODUCTION">IN_PRODUCTION</option>
-                <option value="READY_FOR_DISPATCH">READY_FOR_DISPATCH</option>
-                <option value="DELIVERED">DELIVERED</option>
-              </select>
+            <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Lifecycle Status</h3>
+            <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">Current Status</span>
+                <span className="font-semibold text-blue-400">{currentStatus}</span>
+              </div>
+
+              {nextOptions.length > 0 ? (
+                <div className="space-y-2">
+                  <label className="text-xs text-zinc-500 font-semibold block uppercase tracking-wider">Transition to</label>
+                  <select 
+                    disabled={transitioning || showDispatchForm}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    value=""
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md py-2 px-3 text-zinc-100 outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="" disabled>-- Select status --</option>
+                    {nextOptions.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500 italic">No further status transitions available.</p>
+              )}
             </div>
           </div>
 
-        </div>
+          {/* Dispatch Form Overlay (if DISPATCHED is triggered) */}
+          {showDispatchForm && (
+            <form onSubmit={handleDispatchSubmit} className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg space-y-4">
+              <h4 className="font-semibold text-zinc-100 flex items-center gap-2">
+                <Truck size={16} /> Enter Dispatch Info
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">Courier Name *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={courierName}
+                    onChange={(e) => setCourierName(e.target.value)}
+                    placeholder="e.g. BlueDart, Delhivery"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-md text-sm outline-none text-zinc-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">Tracking ID *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={trackingId}
+                    onChange={(e) => setTrackingId(e.target.value)}
+                    placeholder="e.g. AW1234567"
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-md text-sm outline-none text-zinc-100"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 text-xs font-semibold">
+                <button 
+                  type="button"
+                  onClick={() => setShowDispatchForm(false)}
+                  className="px-3 py-1.5 rounded hover:bg-zinc-800"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={transitioning}
+                  className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50"
+                >
+                  Confirm Dispatch
+                </button>
+              </div>
+            </form>
+          )}
 
+        </div>
       </div>
     </>
   );

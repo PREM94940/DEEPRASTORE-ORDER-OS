@@ -10,22 +10,20 @@ export function CustomerDashboard({ orders, phone }: { orders: Order[], phone: s
 
   // Define the timeline steps
   const steps = [
-    { key: 'NOT_STARTED', label: 'Confirmed' },
-    { key: 'MEASUREMENT_PENDING', label: 'Measurements' },
+    { key: 'CONFIRMED', label: 'Confirmed' },
     { key: 'CUTTING', label: 'Cutting' },
     { key: 'STITCHING', label: 'Stitching' },
-    { key: 'FINISHING', label: 'Finishing' },
-    { key: 'READY', label: 'Ready' },
-    { key: 'PACKING', label: 'Packing' },
-    { key: 'DISPATCHED', label: 'Dispatched' }
+    { key: 'QC', label: 'QC' },
+    { key: 'READY_TO_SHIP', label: 'Ready' },
+    { key: 'DISPATCHED', label: 'Dispatched' },
+    { key: 'DELIVERED', label: 'Delivered' }
   ];
 
   // Helper to determine active step
   const getActiveStatus = (order: Order) => {
-    if (order.dispatchStatus === 'DISPATCHED') return 'DISPATCHED';
-    if (order.dispatchStatus === 'PACKING') return 'PACKING';
-    if (order.productionStatus === 'HOLD') return 'HOLD';
-    return order.productionStatus || 'NOT_STARTED';
+    const s = order.status;
+    if (s === 'DRAFT' || s === 'PENDING_VERIFICATION' || s === 'PAYMENT_REJECTED') return 'CONFIRMED';
+    return s;
   };
 
   const activeStatus = getActiveStatus(selectedOrder);

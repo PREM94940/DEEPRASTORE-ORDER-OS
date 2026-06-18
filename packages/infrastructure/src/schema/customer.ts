@@ -33,9 +33,9 @@ export const customerAddresses = pgTable('customer_addresses', {
 
 export const customerNotes = pgTable('customer_notes', {
   id: uuid('id').primaryKey().defaultRandom(),
-  phone: varchar('phone', { length: 255 }).notNull().references(() => customers.phone),
+  phone: varchar('customer_phone', { length: 255 }).notNull().references(() => customers.phone),
   note: varchar('note', { length: 2048 }),
-  createdBy: varchar('created_by', { length: 255 }),
+  createdBy: varchar('staff_id', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

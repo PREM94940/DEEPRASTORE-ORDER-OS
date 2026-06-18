@@ -1,6 +1,6 @@
 import { eq, and, or, sql } from 'drizzle-orm';
 import { db } from '../db/client';
-import { orders, orderLineItems, orderAddresses } from '../schema/order';
+import { orders, orderLineItems, orderAddresses, payments } from '../schema/order';
 import { v4 as uuidv4 } from 'uuid';
 import { normalizePhone } from '../../../core-domain/src/utils/phone';
 import { 
@@ -34,7 +34,7 @@ export class OrderRepository implements IOrderRepository {
       customerName: data.customerName || null,
       customerPhone: normalizePhone(data.customerPhone),
       source: data.source || 'WHATSAPP',
-      orderType: data.orderType || 'READY',
+      orderCategory: data.orderCategory || data.orderType || 'READY_MADE',
       paymentMethod: data.paymentMethod || null,
       status: data.status || 'PENDING',
       totalAmount: data.totalAmount?.toString() || null,
@@ -98,6 +98,7 @@ export class OrderRepository implements IOrderRepository {
     const client = tx || db;
     await client.update(orders).set({ 
       paymentStatus: 'VERIFICATION_PENDING', 
+      status: 'PENDING_VERIFICATION',
       utrNumber 
     }).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
     const order = await this.getOrderById(tenantId, id);
@@ -120,14 +121,26 @@ export class OrderRepository implements IOrderRepository {
     const client = tx || db;
     await client.update(orders).set({ 
       paymentStatus: 'REJECTED',
-      status: 'CANCELLED'
+      status: 'PAYMENT_REJECTED'
     }).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
     return this.getOrderById(tenantId, id) as any;
   }
 
+  async addPayment(tx: any, tenantId: string, orderId: string, amount: number, staffId: string, utr: string): Promise<void> {
+    const client = tx || db;
+    await client.insert(payments).values({
+      id: uuidv4(),
+      orderId,
+      amount: amount.toString(),
+      utr,
+      status: 'PENDING',
+      createdAt: new Date(),
+    });
+  }
+
   async getPaymentsForVerification(tenantId: string) {
     const result = await db.select().from(orders).where(eq(orders.tenantId, tenantId));
-    return result.filter(o => o.paymentStatus === 'VERIFICATION_PENDING' || o.paymentStatus === 'VERIFIED');
+    return result.filter(o => o.paymentStatus === 'VERIFICATION_PENDING' || o.paymentStatus === 'VERIFIED' || o.paymentStatus === 'REJECTED');
   }
 
   async getProductionQueue(tenantId: string) {
@@ -137,7 +150,10 @@ export class OrderRepository implements IOrderRepository {
         eq(orders.paymentStatus, 'VERIFIED'),
         or(
           eq(orders.status, 'CONFIRMED'),
-          eq(orders.status, 'STITCHING')
+          eq(orders.status, 'CUTTING'),
+          eq(orders.status, 'STITCHING'),
+          eq(orders.status, 'QC'),
+          eq(orders.status, 'READY_TO_SHIP')
         )
       )
     );
@@ -146,33 +162,53 @@ export class OrderRepository implements IOrderRepository {
 
   // CANONICAL STATE MACHINE (Source of Truth)
   readonly validTransitions: Record<string, string[]> = {
-    'PENDING': ['MEASUREMENT_PENDING', 'CONFIRMED'],
-    'CONFIRMED': ['MEASUREMENT_PENDING', 'HOLD'],
-    'MEASUREMENT_PENDING': ['CUTTING', 'HOLD'],
-    'CUTTING': ['STITCHING', 'HOLD'],
-    'STITCHING': ['FINISHING', 'HOLD'],
-    'FINISHING': ['QC_PENDING', 'HOLD'],
-    'QC_PENDING': ['READY', 'HOLD'],
-    'READY': ['HOLD'],
-    'HOLD': ['MEASUREMENT_PENDING', 'CUTTING', 'STITCHING', 'FINISHING', 'QC_PENDING', 'READY']
+    'DRAFT': ['PENDING_VERIFICATION', 'CANCELLED'],
+    'PENDING_VERIFICATION': ['CONFIRMED', 'PAYMENT_REJECTED', 'CANCELLED'],
+    'PAYMENT_REJECTED': ['PENDING_VERIFICATION', 'CANCELLED'],
+    'CONFIRMED': ['CUTTING', 'HOLD', 'CANCELLED'],
+    'CUTTING': ['STITCHING', 'HOLD', 'CANCELLED'],
+    'STITCHING': ['QC', 'HOLD', 'CANCELLED'],
+    'QC': ['READY_TO_SHIP', 'HOLD', 'CANCELLED'],
+    'READY_TO_SHIP': ['DISPATCHED', 'HOLD', 'CANCELLED'],
+    'DISPATCHED': ['DELIVERED', 'CANCELLED'],
+    'DELIVERED': [],
+    'CANCELLED': [],
+    'HOLD': ['CONFIRMED', 'CUTTING', 'STITCHING', 'QC', 'READY_TO_SHIP', 'CANCELLED']
   };
 
   async updateOrderProductionStatus(tx: any, tenantId: string, id: string, newStatus: string): Promise<Order> {
     const order = await this.getOrderById(tenantId, id);
     if (!order) throw new Error('Order not found');
 
-    const currentStatus = order.productionStatus || 'NOT_STARTED';
+    const currentStatus = order.status || 'DRAFT';
     
     // Check if transition is valid
-    if (currentStatus !== 'NOT_STARTED' && !this.validTransitions[currentStatus]?.includes(newStatus)) {
+    if (currentStatus !== newStatus && !this.validTransitions[currentStatus]?.includes(newStatus)) {
       throw new Error(`Invalid state transition from ${currentStatus} to ${newStatus}`);
     }
 
+    // Strict Gatekeeper Rule: payment must be verified before entering CUTTING, STITCHING, QC, READY_TO_SHIP
+    if (['CUTTING', 'STITCHING', 'QC', 'READY_TO_SHIP'].includes(newStatus)) {
+      if (order.paymentStatus !== 'VERIFIED') {
+        throw new Error('Payment must be verified before production can begin.');
+      }
+    }
+
     const client = tx || db;
-    await client.update(orders).set({ 
-      productionStatus: newStatus,
+    const updateFields: any = {
+      status: newStatus,
       updatedAt: new Date()
-    }).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
+    };
+
+    // Keep old production/dispatch columns in sync if they are production/dispatch stages
+    if (['CUTTING', 'STITCHING', 'QC', 'READY_TO_SHIP', 'HOLD'].includes(newStatus)) {
+      updateFields.productionStatus = newStatus === 'QC' ? 'QC_PENDING' : newStatus;
+    }
+    if (['DISPATCHED', 'DELIVERED'].includes(newStatus)) {
+      updateFields.dispatchStatus = newStatus;
+    }
+
+    await client.update(orders).set(updateFields).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
     
     return this.getOrderById(tenantId, id) as any;
   }
@@ -182,7 +218,7 @@ export class OrderRepository implements IOrderRepository {
     const order = await this.getOrderById(tenantId, id);
     if (!order) throw new Error('Order not found');
     
-    const oldStatus = order.productionStatus;
+    const oldStatus = order.status;
     const updatedOrder = await this.updateOrderProductionStatus(client, tenantId, id, newStatus);
     
     // Write to audit_logs table
@@ -193,8 +229,8 @@ export class OrderRepository implements IOrderRepository {
         'orders',
         ${id},
         'PRODUCTION_STATUS_UPDATE',
-        ${JSON.stringify({ production_status: oldStatus })},
-        ${JSON.stringify({ production_status: newStatus, reason })},
+        ${JSON.stringify({ status: oldStatus })},
+        ${JSON.stringify({ status: newStatus, reason })},
         ${staffId},
         now()
       )
@@ -208,18 +244,18 @@ export class OrderRepository implements IOrderRepository {
     const order = await this.getOrderById(tenantId, id);
     if (!order) throw new Error('Order not found');
 
-    const validDispatchTransitions: Record<string, string[]> = {
-      'NOT_STARTED': ['PACKING'],
-      'PACKING': ['DISPATCHED'],
-      'DISPATCHED': []
-    };
+    const currentStatus = order.status || 'DRAFT';
+    if (currentStatus !== newStatus && !this.validTransitions[currentStatus]?.includes(newStatus)) {
+      throw new Error(`Invalid dispatch transition from ${currentStatus} to ${newStatus}`);
+    }
 
-    const oldStatus = order.dispatchStatus || 'NOT_STARTED';
-    if (!validDispatchTransitions[oldStatus]?.includes(newStatus)) {
-      throw new Error(`Invalid dispatch transition from ${oldStatus} to ${newStatus}`);
+    // Require courierName and trackingId if transitioning to DISPATCHED
+    if (newStatus === 'DISPATCHED' && (!details?.courierName || !details?.trackingId)) {
+      throw new Error('Courier Name and Tracking ID are mandatory for dispatching.');
     }
 
     const updateData: any = {
+      status: newStatus,
       dispatchStatus: newStatus,
       updatedAt: new Date()
     };
@@ -239,8 +275,8 @@ export class OrderRepository implements IOrderRepository {
         'orders',
         ${id},
         'DISPATCH_STATUS_UPDATE',
-        ${JSON.stringify({ dispatch_status: oldStatus })},
-        ${JSON.stringify({ dispatch_status: newStatus, ...details })},
+        ${JSON.stringify({ status: currentStatus })},
+        ${JSON.stringify({ status: newStatus, ...details })},
         ${staffId},
         now()
       )

@@ -26,11 +26,14 @@ export async function moveOrderAction(
       staffId
     );
     
-    if (newStatus === 'READY') {
+    if (newStatus === 'READY_TO_SHIP') {
       await notifyOrderReady('CUSTOMER_PHONE', orderId);
     }
     
-    revalidatePath('/command-center');
+    revalidatePath('/');
+    revalidatePath('/production');
+    revalidatePath('/dispatch');
+    revalidatePath('/payments');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -53,7 +56,10 @@ export async function moveDispatchOrderAction(
       staffId
     );
     
-    revalidatePath('/command-center');
+    revalidatePath('/');
+    revalidatePath('/production');
+    revalidatePath('/dispatch');
+    revalidatePath('/payments');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -80,7 +86,10 @@ export async function dispatchOrderAction(
 
     await notifyOrderDispatched('CUSTOMER_PHONE', orderId, courierName, trackingId);
     
-    revalidatePath('/command-center');
+    revalidatePath('/');
+    revalidatePath('/production');
+    revalidatePath('/dispatch');
+    revalidatePath('/payments');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -115,7 +124,10 @@ export async function createOrderAction(data: {
     
     await notifyOrderCreated(data.customerPhone, order.id, data.totalAmount, data.advanceAmount);
     
-    revalidatePath('/command-center');
+    revalidatePath('/');
+    revalidatePath('/production');
+    revalidatePath('/dispatch');
+    revalidatePath('/payments');
     return { success: true, orderId: order.id };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -130,11 +142,17 @@ export async function addPaymentAction(
 ) {
   const tenantId = '11111111-1111-1111-1111-111111111111';
   try {
-    await orderRepo.addPayment(null, tenantId, orderId, amount, staffId, utr);
+    await db.transaction(async (tx) => {
+      await orderRepo.addPayment(tx, tenantId, orderId, amount, staffId, utr);
+      await orderRepo.updatePaymentUTR(tx, tenantId, orderId, utr);
+    });
     
     await notifyPaymentReceived('CUSTOMER_PHONE', orderId, amount);
 
-    revalidatePath('/command-center');
+    revalidatePath('/');
+    revalidatePath('/production');
+    revalidatePath('/dispatch');
+    revalidatePath('/payments');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

@@ -6,7 +6,8 @@
   },
   "scripts": {
     "build": "npx turbo run build",
-    "lint": "npx turbo run lint"
+    "lint": "npx turbo run lint",
+    "omp": "C:\\Users\\rodda\\AppData\\Local\\omp\\omp.exe"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

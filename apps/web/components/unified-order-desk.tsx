@@ -293,15 +293,15 @@ Thank you for shopping with us!`;
           <div className="space-y-1">
             <label className="text-xs text-white/50">Order Date</label>
             <input 
-              type="date" required
+              type="date"
               value={formData.orderDate} onChange={e => setFormData({...formData, orderDate: e.target.value})}
               className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-white/50">Delivery Date *</label>
+            <label className="text-xs text-white/50">Delivery Date</label>
             <input 
-              type="date" required
+              type="date"
               value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})}
               className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
             />

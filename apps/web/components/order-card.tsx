@@ -47,7 +47,7 @@ export function OrderCard({ order }: OrderCardProps) {
   const agingDiffTime = new Date().getTime() - updatedDate.getTime();
   const agingDays = Math.floor(agingDiffTime / (1000 * 60 * 60 * 24));
   
-  const isAgingCritical = agingDays >= 5 && order.productionStatus !== 'READY' && order.productionStatus !== 'NOT_STARTED';
+  const isAgingCritical = agingDays >= 5 && order.productionStatus !== 'READY_TO_SHIP' && order.productionStatus !== 'NOT_STARTED';
 
   return (
     <div className={`group relative flex flex-col gap-3 rounded-lg border p-3 transition-all hover:shadow-md ${escalationClass}`}>

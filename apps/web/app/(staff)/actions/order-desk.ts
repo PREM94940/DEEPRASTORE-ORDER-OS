@@ -62,6 +62,11 @@ export async function createUnifiedOrderAction(data: any) {
 
       const orderNumber = `DP-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
+      const hasPayment = data.advanceAmount && Number(data.advanceAmount) > 0;
+      const isCash = data.paymentMethod === 'CASH';
+      const initialStatus = hasPayment ? (isCash ? 'CONFIRMED' : 'PENDING_VERIFICATION') : 'DRAFT';
+      const initialPaymentStatus = hasPayment ? (isCash ? 'VERIFIED' : 'VERIFICATION_PENDING') : 'UNPAID';
+
       // 3. Create Order
       const [newOrder] = await tx.insert(orders).values({
         tenantId: MOCK_TENANT_ID,
@@ -81,10 +86,11 @@ export async function createUnifiedOrderAction(data: any) {
         advanceAmount: data.advanceAmount?.toString() || '0',
         balanceAmount: data.balanceAmount?.toString() || '0',
         paymentMethod: data.paymentMethod,
-        utrNumber: data.utrNumber,
-        paymentProofUrl: data.paymentProofUrl,
+        utrNumber: data.utrNumber || null,
+        paymentProofUrl: data.attachments?.[0]?.url || data.paymentProofUrl || null,
         notes: data.notes,
-        status: 'CONFIRMED', // Immediately confirmed on desk entry
+        status: initialStatus,
+        paymentStatus: initialPaymentStatus,
         orderNumber,
       }).returning();
       
@@ -98,14 +104,14 @@ export async function createUnifiedOrderAction(data: any) {
       }
 
       // 5. Create Payment Record if advance is paid
-      if (data.advanceAmount && Number(data.advanceAmount) > 0) {
+      if (hasPayment) {
         paymentAmount = Number(data.advanceAmount);
         await tx.insert(payments).values({
           orderId: newOrder.id,
           amount: data.advanceAmount.toString(),
-          utr: data.utrNumber,
-          screenshotUrl: data.paymentProofUrl,
-          status: data.paymentMethod === 'CASH' ? 'VERIFIED' : 'PENDING',
+          utr: data.utrNumber || null,
+          screenshotUrl: data.attachments?.[0]?.url || data.paymentProofUrl || null,
+          status: isCash ? 'VERIFIED' : 'PENDING',
         });
       }
     });
