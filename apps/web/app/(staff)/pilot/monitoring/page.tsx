@@ -38,15 +38,15 @@ export default async function MonitoringDashboard({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    alert.level === 'ERROR' || alert.level === 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                    alert.level === 'WARNING' ? 'bg-yellow-100 text-yellow-800' :
+                    alert.severity === 'ERROR' || alert.severity === 'CRITICAL' ? 'bg-red-100 text-red-800' :
+                    alert.severity === 'WARNING' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-green-100 text-green-800'
                   }`}>
-                    {alert.level}
+                    {alert.severity}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500">
-                  {alert.source}
+                  {alert.alertType}
                 </td>
                 <td className="px-6 py-4 text-sm text-zinc-900 dark:text-zinc-100">
                   {alert.message}

@@ -55,11 +55,11 @@ export async function getPilotMetrics() {
   const executionTime = Date.now() - startTime;
   console.log(`[Pilot Dashboard] Query execution time: ${executionTime}ms`);
 
-  const oStats = (ordersResult.rows || ordersResult)[0] as any;
-  const eStats = (exceptionsResult.rows || exceptionsResult)[0] as any;
-  const bStats = (bugsResult.rows || bugsResult)[0] as any;
-  const nStats = (notificationsResult.rows || notificationsResult)[0] as any;
-  const tStats = (ticketsResult.rows || ticketsResult)[0] as any;
+  const oStats = ((ordersResult as any).rows || ordersResult)[0] as any;
+  const eStats = ((exceptionsResult as any).rows || exceptionsResult)[0] as any;
+  const bStats = ((bugsResult as any).rows || bugsResult)[0] as any;
+  const nStats = ((notificationsResult as any).rows || notificationsResult)[0] as any;
+  const tStats = ((ticketsResult as any).rows || ticketsResult)[0] as any;
 
   const ordersStuck = Number(oStats?.stuck_cutting || 0) + Number(oStats?.stuck_stitching || 0) + Number(oStats?.stuck_qc || 0);
   

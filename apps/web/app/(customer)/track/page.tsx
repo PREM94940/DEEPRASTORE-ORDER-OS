@@ -3,7 +3,7 @@ import { CustomerAuthForm } from '@/components/customer-auth-form';
 import { CustomerDashboard } from '@/components/customer-dashboard';
 import { db } from '@deeprastore/infrastructure';
 import { orders } from '@deeprastore/infrastructure/src/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 
 export const dynamic = "force-dynamic";

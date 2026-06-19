@@ -210,7 +210,7 @@ export async function submitCustomerResponseAction(
 
 export async function createUnifiedOrderAction(data: any) {
   try {
-    let orderResult;
+    let orderResult: any;
     let paymentAmount = 0;
     
     await db.transaction(async (tx) => {
@@ -292,9 +292,8 @@ export async function createUnifiedOrderAction(data: any) {
       const orderNumber = `DP-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
 
       const hasPayment = data.advanceAmount && Number(data.advanceAmount) > 0;
-      const isCash = data.paymentMethod === 'CASH';
-      const initialStatus = hasPayment ? (isCash ? 'CONFIRMED' : 'PENDING_VERIFICATION') : 'DRAFT';
-      const initialPaymentStatus = hasPayment ? (isCash ? 'VERIFIED' : 'VERIFICATION_PENDING') : 'UNPAID';
+      const initialStatus = hasPayment ? 'PENDING_VERIFICATION' : 'DRAFT';
+      const initialPaymentStatus = hasPayment ? 'VERIFICATION_PENDING' : 'UNPAID';
 
       // 3. Create Order
       const [newOrder] = await tx.insert(orders).values({
@@ -341,7 +340,7 @@ export async function createUnifiedOrderAction(data: any) {
           amount: data.advanceAmount.toString(),
           utr: data.utrNumber || null,
           screenshotUrl: data.attachments?.[0]?.url || data.paymentProofUrl || null,
-          status: isCash ? 'VERIFIED' : 'PENDING',
+          status: 'PENDING',
         });
       }
     });

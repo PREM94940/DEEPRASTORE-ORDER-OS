@@ -63,9 +63,11 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
     if (!selectedPayment) return;
     const confirmReject = confirm("Are you sure you want to reject this payment? The order status will transition to PAYMENT_REJECTED.");
     if (!confirmReject) return;
+    const staffName = prompt("Enter your staff name to reject payment:", "Staff01");
+    if (!staffName) return;
 
     startTransition(async () => {
-      const res = await rejectPaymentAction(selectedPayment.orderId, selectedPayment.id);
+      const res = await rejectPaymentAction(selectedPayment.orderId, selectedPayment.id, staffName);
       if (res.success) {
         alert("Payment rejected. Order status updated to PAYMENT_REJECTED.");
         window.location.reload();

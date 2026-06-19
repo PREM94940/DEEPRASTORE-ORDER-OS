@@ -63,7 +63,7 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
                 <p className="text-sm text-white/80 line-clamp-2">{enq.productType}</p>
                 
                 {/* Thumbnail Preview */}
-                {(enq.referenceImages && (enq.referenceImages as string[]).length > 0) && (
+                {(Array.isArray(enq.referenceImages) && enq.referenceImages.length > 0) && (
                   <div className="flex gap-2 mt-3 overflow-hidden">
                     {(enq.referenceImages as string[]).slice(0, 3).map((url, i) => (
                       <img key={i} src={url} alt="" className="w-10 h-10 object-cover rounded opacity-80" />

@@ -129,7 +129,7 @@ const columns: ColumnDef<OrderRow>[] = [
   },
 ];
  
-type TabType = 'Drafts' | 'Pending Verification' | 'Active Production' | 'Ready' | 'Completed';
+type TabType = 'Drafts' | 'Pending Verification' | 'Active Production' | 'Ready & Packing' | 'Completed';
  
 export function OperationsGrid({ initialData, defaultTab = 'Active Production' }: { initialData: OrderRow[]; defaultTab?: TabType }) {
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(null);
@@ -137,13 +137,13 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
  
   // Compute tab counts
   const tabCounts = React.useMemo(() => {
-    const counts = { 'Drafts': 0, 'Pending Verification': 0, 'Active Production': 0, 'Ready': 0, 'Completed': 0 };
+    const counts = { 'Drafts': 0, 'Pending Verification': 0, 'Active Production': 0, 'Ready & Packing': 0, 'Completed': 0 };
     initialData.forEach(o => {
       const s = o.status;
       if (s === 'DRAFT') counts['Drafts']++;
       else if (s === 'PENDING_VERIFICATION' || s === 'PAYMENT_REJECTED') counts['Pending Verification']++;
-      else if (['CONFIRMED', 'CUTTING', 'STITCHING', 'QC', 'HOLD'].includes(s)) counts['Active Production']++;
-      else if (s === 'READY_TO_SHIP') counts['Ready']++;
+      else if (['CONFIRMED', 'CUTTING', 'STITCHING', 'FINISHING', 'QC', 'HOLD'].includes(s)) counts['Active Production']++;
+      else if (['READY', 'PACKING'].includes(s)) counts['Ready & Packing']++;
       else if (['DISPATCHED', 'DELIVERED', 'CANCELLED'].includes(s)) counts['Completed']++;
     });
     return counts;
@@ -155,8 +155,8 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
       const s = o.status;
       if (activeTab === 'Drafts') return s === 'DRAFT';
       if (activeTab === 'Pending Verification') return s === 'PENDING_VERIFICATION' || s === 'PAYMENT_REJECTED';
-      if (activeTab === 'Active Production') return ['CONFIRMED', 'CUTTING', 'STITCHING', 'QC', 'HOLD'].includes(s);
-      if (activeTab === 'Ready') return s === 'READY_TO_SHIP';
+      if (activeTab === 'Active Production') return ['CONFIRMED', 'CUTTING', 'STITCHING', 'FINISHING', 'QC', 'HOLD'].includes(s);
+      if (activeTab === 'Ready & Packing') return ['READY', 'PACKING'].includes(s);
       if (activeTab === 'Completed') return ['DISPATCHED', 'DELIVERED', 'CANCELLED'].includes(s);
       return true;
     });
@@ -168,7 +168,7 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const tabHeaders: TabType[] = ['Drafts', 'Pending Verification', 'Active Production', 'Ready', 'Completed'];
+  const tabHeaders: TabType[] = ['Drafts', 'Pending Verification', 'Active Production', 'Ready & Packing', 'Completed'];
 
   return (
     <>
@@ -181,7 +181,7 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
             let activeColor = "border-blue-500 text-blue-400 bg-blue-500/5";
             if (tab === 'Pending Verification') activeColor = "border-amber-500 text-amber-400 bg-amber-500/5";
             if (tab === 'Active Production') activeColor = "border-purple-500 text-purple-400 bg-purple-500/5";
-            if (tab === 'Ready') activeColor = "border-emerald-500 text-emerald-400 bg-emerald-500/5";
+            if (tab === 'Ready & Packing') activeColor = "border-emerald-500 text-emerald-400 bg-emerald-500/5";
 
             return (
               <button

@@ -6,7 +6,7 @@ export * from './product';
 export * from './staff';
 export * from './audit';
 export * from './bugs';
-export * from './support';
+
 export * from './exceptions';
 export * from './notifications';
 export * from './enquiry';

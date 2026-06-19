@@ -34,7 +34,7 @@ export class OrderRepository implements IOrderRepository {
       customerName: data.customerName || null,
       customerPhone: normalizePhone(data.customerPhone),
       source: data.source || 'WHATSAPP',
-      orderCategory: data.orderCategory || data.orderType || 'READY_MADE',
+      orderCategory: (data as any).orderCategory || (data as any).orderType || 'READY_MADE',
       paymentMethod: data.paymentMethod || null,
       status: data.status || 'PENDING',
       totalAmount: data.totalAmount?.toString() || null,
@@ -195,7 +195,7 @@ export class OrderRepository implements IOrderRepository {
 
     // Strict Gatekeeper Rule: payment must be verified before entering CUTTING, STITCHING, QC, READY_TO_SHIP
     if (['CUTTING', 'STITCHING', 'QC', 'READY_TO_SHIP'].includes(newStatus)) {
-      if (order.paymentStatus !== 'VERIFIED') {
+      if ((order as any).paymentStatus !== 'VERIFIED') {
         throw new Error('Payment must be verified before production can begin.');
       }
     }
@@ -206,12 +206,12 @@ export class OrderRepository implements IOrderRepository {
       updatedAt: new Date()
     };
 
-    // Keep old production/dispatch columns in sync if they are production/dispatch stages
+    // Keep old production columns in sync if they are production stages
     if (['CUTTING', 'STITCHING', 'QC', 'READY_TO_SHIP', 'HOLD'].includes(newStatus)) {
       updateFields.productionStatus = newStatus === 'QC' ? 'QC_PENDING' : newStatus;
     }
     if (['DISPATCHED', 'DELIVERED'].includes(newStatus)) {
-      updateFields.dispatchStatus = newStatus;
+      throw new Error(`Status ${newStatus} must be updated via dispatch flow to enforce tracking and balance constraints.`);
     }
 
     await client.update(orders).set(updateFields).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
@@ -260,7 +260,7 @@ export class OrderRepository implements IOrderRepository {
       if (!details?.courierName || !details?.trackingId) {
         throw new Error('Courier Name and Tracking ID are mandatory for dispatching.');
       }
-      const balance = order.balanceAmount ? parseFloat(order.balanceAmount.toString()) : 0;
+      const balance = (order as any).balanceAmount ? parseFloat((order as any).balanceAmount.toString()) : 0;
       if (balance > 0) {
         throw new Error(`Cannot dispatch order with outstanding balance of ₹${balance.toFixed(2)}.`);
       }

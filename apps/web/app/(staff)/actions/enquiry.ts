@@ -12,7 +12,7 @@ export async function submitEnquiryAction(data: any) {
     
     // 1. Generate sequential request number
     const seqRes = await db.execute(sql`SELECT nextval('enquiry_number_seq')`);
-    const nextVal = (seqRes.rows || seqRes)[0]?.nextval || 1;
+    const nextVal = ((seqRes as any).rows || seqRes)[0]?.nextval || 1;
     const enquiryNumber = `REQUEST-${String(nextVal).padStart(4, '0')}`;
 
     // 2. Generate secure UUID tracking token

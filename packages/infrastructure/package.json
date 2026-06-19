@@ -10,7 +10,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "^0.45.2",
     "pg": "^8.21.0",
     "postgres": "^3.4.4",
     "uuid": "^9.0.1"

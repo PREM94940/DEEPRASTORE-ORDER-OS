@@ -8,7 +8,7 @@ const nextConfig = {
   experimental: {},
   transpilePackages: ['@deeprastore/infrastructure', '@deeprastore/core-domain'],
   typescript: {
-    ignoreBuildErrors: true,
+    // strict mode
   },
   images: {
     remotePatterns: [

@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 export async function updateLeadStatus({ leadId, status, staffId }: { leadId: string, status: string, staffId: string }) {
   try {
     const [lead] = await db.update(leads)
-      .set({ status, updatedAt: new Date() })
+      .set({ status })
       .where(eq(leads.id, leadId))
       .returning();
 
