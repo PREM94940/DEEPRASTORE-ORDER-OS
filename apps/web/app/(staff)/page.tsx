@@ -38,7 +38,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-zinc-400">Manage orders, payments, and production lifecycle.</p>
           </div>
         </header>
-        <OperationsGrid initialData={allOrders} />
+        <OperationsGrid initialData={allOrders} defaultTab="Drafts" />
       </main>
     </div>
   );

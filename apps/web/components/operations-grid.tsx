@@ -131,9 +131,9 @@ const columns: ColumnDef<OrderRow>[] = [
  
 type TabType = 'Drafts' | 'Pending Verification' | 'Active Production' | 'Ready' | 'Completed';
  
-export function OperationsGrid({ initialData }: { initialData: OrderRow[] }) {
+export function OperationsGrid({ initialData, defaultTab = 'Active Production' }: { initialData: OrderRow[]; defaultTab?: TabType }) {
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(null);
-  const [activeTab, setActiveTab] = React.useState<TabType>('Active Production');
+  const [activeTab, setActiveTab] = React.useState<TabType>(defaultTab);
  
   // Compute tab counts
   const tabCounts = React.useMemo(() => {
