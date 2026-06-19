@@ -44,7 +44,7 @@ export async function updateSession(request: NextRequest) {
     if (
       !request.nextUrl.pathname.startsWith('/login') &&
       !request.nextUrl.pathname.startsWith('/auth') &&
-      !request.nextUrl.pathname.startsWith('/order') &&
+      request.nextUrl.pathname !== '/order' &&
       !request.nextUrl.pathname.startsWith('/intake') &&
       !request.nextUrl.pathname.startsWith('/track') &&
       !request.nextUrl.pathname.startsWith('/api/upload')
