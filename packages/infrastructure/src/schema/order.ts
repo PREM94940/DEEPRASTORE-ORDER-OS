@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, integer, numeric, jsonb, serial } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, integer, numeric, jsonb, serial, boolean } from 'drizzle-orm/pg-core';
 import { customers } from './customer';
 
 export const businessIdSeq = pgTable('business_id_seq', {
@@ -52,6 +52,7 @@ export const orders = pgTable('orders', {
 
   // V2 Enhancements
   orderNumber: varchar('order_number', { length: 50 }).unique(),
+  trackingToken: varchar('tracking_token', { length: 100 }),
   
   // Tracking Metadata (DELIVERED/DISPATCHED)
   courierName: varchar('courier_name', { length: 255 }),
@@ -64,6 +65,11 @@ export const orders = pgTable('orders', {
   totalAmount: numeric('total_amount', { precision: 10, scale: 2 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  
+  // Soft Delete Fields
+  isDeleted: boolean('is_deleted').default(false).notNull(),
+  deletedAt: timestamp('deleted_at'),
+  deletedBy: varchar('deleted_by', { length: 255 }),
 });
 
 export const orderLineItems = pgTable('order_line_items', {

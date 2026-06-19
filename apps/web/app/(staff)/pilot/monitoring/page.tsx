@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 export default async function MonitoringDashboard({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  if (searchParams.crash === 'true') {
+  const resolvedSearchParams = await searchParams;
+  if (resolvedSearchParams.crash === 'true') {
     throw new Error('MT-1 Validation Error');
   }
   const alerts = await getRecentSystemAlerts();

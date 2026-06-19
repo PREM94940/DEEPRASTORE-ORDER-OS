@@ -139,7 +139,12 @@ export class OrderRepository implements IOrderRepository {
   }
 
   async getPaymentsForVerification(tenantId: string) {
-    const result = await db.select().from(orders).where(eq(orders.tenantId, tenantId));
+    const result = await db.select().from(orders).where(
+      and(
+        eq(orders.tenantId, tenantId),
+        eq(orders.isDeleted, false)
+      )
+    );
     return result.filter(o => o.paymentStatus === 'VERIFICATION_PENDING' || o.paymentStatus === 'VERIFIED' || o.paymentStatus === 'REJECTED');
   }
 
@@ -148,6 +153,7 @@ export class OrderRepository implements IOrderRepository {
       and(
         eq(orders.tenantId, tenantId),
         eq(orders.paymentStatus, 'VERIFIED'),
+        eq(orders.isDeleted, false),
         or(
           eq(orders.status, 'CONFIRMED'),
           eq(orders.status, 'CUTTING'),
@@ -250,8 +256,14 @@ export class OrderRepository implements IOrderRepository {
     }
 
     // Require courierName and trackingId if transitioning to DISPATCHED
-    if (newStatus === 'DISPATCHED' && (!details?.courierName || !details?.trackingId)) {
-      throw new Error('Courier Name and Tracking ID are mandatory for dispatching.');
+    if (newStatus === 'DISPATCHED') {
+      if (!details?.courierName || !details?.trackingId) {
+        throw new Error('Courier Name and Tracking ID are mandatory for dispatching.');
+      }
+      const balance = order.balanceAmount ? parseFloat(order.balanceAmount.toString()) : 0;
+      if (balance > 0) {
+        throw new Error(`Cannot dispatch order with outstanding balance of ₹${balance.toFixed(2)}.`);
+      }
     }
 
     const updateData: any = {
@@ -290,14 +302,18 @@ export class OrderRepository implements IOrderRepository {
     return await db.select().from(orders).where(
       and(
         eq(orders.tenantId, tenantId),
-        eq(orders.customerPhone, normalizedPhone)
+        eq(orders.customerPhone, normalizedPhone),
+        eq(orders.isDeleted, false)
       )
     );
   }
 
   async getAllOrders(tenantId: string) {
     return await db.select().from(orders).where(
-      eq(orders.tenantId, tenantId)
+      and(
+        eq(orders.tenantId, tenantId),
+        eq(orders.isDeleted, false)
+      )
     );
   }
 
@@ -321,7 +337,8 @@ export class OrderRepository implements IOrderRepository {
     return await db.select().from(orders).where(
       and(
         eq(orders.tenantId, tenantId),
-        eq(orders.exceptionStatus, 'OPEN')
+        eq(orders.exceptionStatus, 'OPEN'),
+        eq(orders.isDeleted, false)
       )
     );
   }

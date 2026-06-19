@@ -8,6 +8,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { OrderDrawer } from "./order-drawer";
+import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
 
 type OrderRow = {
   id: string;
@@ -17,6 +18,8 @@ type OrderRow = {
   source: string;
   orderCategory: string;
   totalAmount: string | null;
+  balanceAmount: string | null;
+  advanceAmount: string | null;
   status: string;
   paymentStatus: string;
   primaryImageUrl: string;
@@ -96,15 +99,14 @@ const columns: ColumnDef<OrderRow>[] = [
     accessorKey: "paymentStatus",
     header: "Payment",
     cell: ({ row }) => {
-      const pStatus = row.getValue("paymentStatus") as string;
-      let color = "bg-zinc-800/40 text-zinc-400 border border-zinc-700";
-      if (pStatus === 'VERIFIED') color = "bg-emerald-900/30 text-emerald-400 border border-emerald-900/50";
-      else if (pStatus === 'VERIFICATION_PENDING') color = "bg-amber-900/30 text-amber-500 border border-amber-900/50";
-      else if (pStatus === 'REJECTED') color = "bg-red-900/30 text-red-400 border border-red-900/50";
+      const fStatus = getFinancialStatus(row.original);
+      const balance = row.original.balanceAmount ? parseFloat(row.original.balanceAmount) : 0;
+      const label = getFinancialStatusLabel(fStatus, balance);
+      const color = getFinancialStatusColor(fStatus);
       
       return (
-        <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
-          {pStatus}
+        <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide ${color}`}>
+          {label}
         </div>
       );
     },

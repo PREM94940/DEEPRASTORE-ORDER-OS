@@ -1,23 +1,42 @@
 'use server';
 
 import { db } from '@deeprastore/infrastructure';
-import { orders, enquiries, customers, payments } from '@deeprastore/infrastructure/src/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { orders, enquiries, customers, payments, customerAddresses, measurementsHistory, enquiryQuotes, enquiryComments } from '@deeprastore/infrastructure/src/schema';
+import { eq, and, desc, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { notifyOrderCreated, notifyPaymentReceived } from './notifications';
+import { v4 as uuidv4 } from 'uuid';
 
 const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
+function safeRevalidatePath(path: string) {
+  try {
+    revalidatePath(path);
+  } catch (error) {
+    // Ignore static generation store missing error outside next.js web runtime
+  }
+}
+
 export async function getPendingEnquiries() {
   try {
-    const result = await db.select()
+    const result = await db.select({
+      enquiry: enquiries,
+      quote: enquiryQuotes
+    })
       .from(enquiries)
+      .leftJoin(enquiryQuotes, eq(enquiries.currentQuoteId, enquiryQuotes.id))
       .where(and(
         eq(enquiries.tenantId, MOCK_TENANT_ID),
-        eq(enquiries.status, 'NEW_ENQUIRY')
+        ne(enquiries.status, 'CONVERTED'),
+        ne(enquiries.status, 'CLOSED')
       ))
       .orderBy(desc(enquiries.createdAt));
-    return result;
+    
+    // Map to include quote details nested inside enquiry object
+    return result.map(row => ({
+      ...row.enquiry,
+      quote: row.quote
+    }));
   } catch (error) {
     console.error('Failed to get enquiries:', error);
     return [];
@@ -32,6 +51,155 @@ export async function convertEnquiryToOrder(enquiryId: string) {
     return { success: true, enquiry };
   } catch (error) {
     return { error: 'Failed to convert enquiry' };
+  }
+}
+
+export async function updateEnquiryStatusAction(
+  enquiryId: string, 
+  status: string, 
+  assignedTo?: string, 
+  advancePaymentProofUrl?: string,
+  quoteData?: {
+    quoteAmount: string;
+    requiredAdvance: string;
+    quoteNotes?: string;
+    invoiceUrl?: string;
+    expiresAt?: string;
+  }
+) {
+  try {
+    const [enqBefore] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
+    const beforeStatus = enqBefore ? enqBefore.status : 'REQUEST';
+
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
+    if (assignedTo !== undefined) {
+      updateData.assignedTo = assignedTo;
+    }
+    if (advancePaymentProofUrl !== undefined) {
+      updateData.advancePaymentProofUrl = advancePaymentProofUrl;
+    }
+
+    if (quoteData && quoteData.quoteAmount) {
+      const existingQuotes = await db.select()
+        .from(enquiryQuotes)
+        .where(eq(enquiryQuotes.enquiryId, enquiryId))
+        .orderBy(desc(enquiryQuotes.version));
+      
+      const newVersion = existingQuotes.length > 0 ? existingQuotes[0].version + 1 : 1;
+      const quoteId = uuidv4();
+
+      await db.insert(enquiryQuotes).values({
+        id: quoteId,
+        enquiryId,
+        version: newVersion,
+        quoteAmount: quoteData.quoteAmount,
+        requiredAdvance: quoteData.requiredAdvance || '0',
+        quoteNotes: quoteData.quoteNotes || null,
+        invoiceUrl: quoteData.invoiceUrl || null,
+        expiresAt: quoteData.expiresAt ? new Date(quoteData.expiresAt) : null,
+        createdBy: assignedTo || 'Staff',
+        statusSnapshot: status,
+        createdFromStatus: beforeStatus,
+      });
+
+      updateData.currentQuoteId = quoteId;
+    }
+
+    await db.update(enquiries)
+      .set(updateData)
+      .where(eq(enquiries.id, enquiryId));
+
+    safeRevalidatePath('/pilot/order-desk');
+    const [enq] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
+    if (enq && enq.trackingToken) {
+      safeRevalidatePath(`/track/${enq.trackingToken}`);
+    }
+    safeRevalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update enquiry status:', error);
+    return { success: false, error: 'Failed to update status' };
+  }
+}
+
+export async function addEnquiryCommentAction(enquiryId: string, staffName: string, comment: string) {
+  try {
+    await db.insert(enquiryComments).values({
+      enquiryId,
+      staffName,
+      comment,
+    });
+    safeRevalidatePath('/pilot/order-desk');
+    const [enq] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
+    if (enq && enq.trackingToken) {
+      safeRevalidatePath(`/track/${enq.trackingToken}`);
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to add comment:', error);
+    return { success: false, error: 'Failed to add comment' };
+  }
+}
+
+export async function getEnquiryCommentsAction(enquiryId: string) {
+  try {
+    const result = await db.select()
+      .from(enquiryComments)
+      .where(eq(enquiryComments.enquiryId, enquiryId))
+      .orderBy(desc(enquiryComments.createdAt));
+    return result;
+  } catch (error) {
+    console.error('Failed to get comments:', error);
+    return [];
+  }
+}
+
+export async function submitCustomerResponseAction(
+  enquiryId: string,
+  responseType: 'APPROVED' | 'REJECTED' | 'CHANGES_REQUESTED',
+  notes?: string,
+  advancePaymentProofUrl?: string
+) {
+  try {
+    const [enquiry] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
+    if (!enquiry) {
+      return { success: false, error: 'Request not found' };
+    }
+
+    const updateData: any = {
+      customerResponse: responseType,
+      customerResponseNotes: notes || null,
+      updatedAt: new Date()
+    };
+
+    if (responseType === 'APPROVED') {
+      updateData.status = 'PAYMENT_RECEIVED';
+      if (advancePaymentProofUrl) {
+        updateData.advancePaymentProofUrl = advancePaymentProofUrl;
+      }
+    } else if (responseType === 'REJECTED') {
+      updateData.status = 'REJECTED';
+    } else if (responseType === 'CHANGES_REQUESTED') {
+      updateData.status = 'CHANGES_REQUESTED';
+    }
+
+    await db.update(enquiries)
+      .set(updateData)
+      .where(eq(enquiries.id, enquiryId));
+
+    safeRevalidatePath('/pilot/order-desk');
+    if (enquiry.trackingToken) {
+      safeRevalidatePath(`/track/${enquiry.trackingToken}`);
+    }
+    safeRevalidatePath('/');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to submit customer response:', error);
+    return { success: false, error: 'Failed to save your response' };
   }
 }
 
@@ -57,6 +225,62 @@ export async function createUnifiedOrderAction(data: any) {
             phone: data.phone,
           }).returning();
           customerId = newCust.id;
+        }
+      }
+
+      // Update email on customer if not set
+      if (data.email) {
+        await tx.update(customers)
+          .set({ email: data.email })
+          .where(eq(customers.id, customerId));
+      }
+
+      // Check and save customer address
+      if (data.address) {
+        const existingAddr = await tx.select().from(customerAddresses).where(eq(customerAddresses.customerPhone, data.phone));
+        if (existingAddr.length > 0) {
+          await tx.update(customerAddresses)
+            .set({ addressLine1: data.address, updatedAt: new Date() })
+            .where(eq(customerAddresses.customerPhone, data.phone));
+        } else {
+          await tx.insert(customerAddresses).values({
+            id: uuidv4(),
+            tenantId: MOCK_TENANT_ID,
+            customerPhone: data.phone,
+            fullName: data.name,
+            addressLine1: data.address,
+            city: 'Not Set',
+            state: 'Not Set',
+            postalCode: '000000',
+            country: 'India',
+          });
+        }
+      }
+
+      // Check for enquiry details to inherit token or save measurements
+      let trackingToken = uuidv4(); // Default token
+      
+      if (data.enquiryId) {
+        const [enquiry] = await tx.select().from(enquiries).where(eq(enquiries.id, data.enquiryId));
+        if (enquiry) {
+          if (enquiry.trackingToken) {
+            trackingToken = enquiry.trackingToken; // Inherit the same tracking token forever!
+          }
+          if (enquiry.measurements) {
+            // Save measurements to history
+            const m = enquiry.measurements as any;
+            await tx.insert(measurementsHistory).values({
+              id: uuidv4(),
+              customerId: customerId,
+              customerPhone: data.phone,
+              bust: m.blouse?.bust || m.kurta?.chest || null,
+              waist: m.lehenga?.waist || m.blouse?.waist || m.kurta?.waist || null,
+              hip: m.lehenga?.hip || m.kurta?.hip || null,
+              height: m.lehenga?.length || m.kurta?.length || null,
+              customFields: m,
+              recordedAt: new Date(),
+            });
+          }
         }
       }
 
@@ -92,6 +316,7 @@ export async function createUnifiedOrderAction(data: any) {
         status: initialStatus,
         paymentStatus: initialPaymentStatus,
         orderNumber,
+        trackingToken, // Inherited or generated UUID
       }).returning();
       
       orderResult = newOrder;
@@ -123,7 +348,10 @@ export async function createUnifiedOrderAction(data: any) {
       }
     }
 
-    revalidatePath('/pilot/order-desk');
+    safeRevalidatePath('/pilot/order-desk');
+    safeRevalidatePath('/production');
+    safeRevalidatePath('/dispatch');
+    safeRevalidatePath('/');
     
     return { 
       success: true, 

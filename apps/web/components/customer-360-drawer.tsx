@@ -7,6 +7,8 @@ import {
 import { createOrderAction } from "@/app/(staff)/actions/command-center";
 import { updateMeasurementsAction, addCustomerNoteAction } from "@/app/(staff)/actions/customer";
 
+import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
+
 export interface CustomerProfilePayload {
   id: string | null;
   name: string | null;
@@ -21,6 +23,9 @@ export interface CustomerProfilePayload {
     dispatchStatus: string;
     status: string;
     totalAmount: number;
+    balanceAmount?: number;
+    advanceAmount?: number;
+    paymentStatus?: string;
   }>;
   payments: Array<{
     id: string;
@@ -386,9 +391,25 @@ export function Customer360Drawer({
                 <div key={order.id} className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 space-y-2 hover:border-zinc-700 transition-colors">
                   <div className="flex justify-between items-start">
                     <div className="font-mono text-zinc-200 font-semibold">{order.orderNumber}</div>
-                    <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-blue-900/30 text-blue-400 border border-blue-900/30">
-                      {order.status}
-                    </span>
+                    <div className="flex flex-wrap gap-1.5 justify-end">
+                      {/* Financial Status Badge */}
+                      {(() => {
+                        const finStatus = getFinancialStatus({
+                          totalAmount: order.totalAmount,
+                          balanceAmount: order.balanceAmount,
+                          advanceAmount: order.advanceAmount,
+                          paymentStatus: order.paymentStatus
+                        });
+                        return (
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${getFinancialStatusColor(finStatus)}`}>
+                            {getFinancialStatusLabel(finStatus, order.balanceAmount)}
+                          </span>
+                        );
+                      })()}
+                      <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-blue-900/30 text-blue-400 border border-blue-900/30">
+                        {order.status}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex justify-between text-xs text-zinc-400 mt-2">
                     <span>Category: {order.category}</span>

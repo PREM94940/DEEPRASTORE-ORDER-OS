@@ -4,6 +4,8 @@ import * as React from "react";
 import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck } from "lucide-react";
 import { moveOrderAction, moveDispatchOrderAction, dispatchOrderAction } from "@/app/(staff)/actions/command-center";
 import { useCustomer360 } from "@/hooks/useCustomer360";
+import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
+import { checkIsAdminAction, deleteOrderAction } from "@/app/(staff)/actions/admin";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   'DRAFT': ['PENDING_VERIFICATION', 'CANCELLED'],
@@ -35,11 +37,44 @@ export function OrderDrawer({
   const [courierName, setCourierName] = React.useState("");
   const [trackingId, setTrackingId] = React.useState("");
 
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+
   React.useEffect(() => {
     setShowDispatchForm(false);
     setCourierName("");
     setTrackingId("");
+    setShowDeleteConfirm(false);
+
+    checkIsAdminAction().then(res => {
+      if (res.success && res.isAdmin) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    });
   }, [order]);
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setTransitioning(true);
+    try {
+      const res = await deleteOrderAction(order.id);
+      if (res.success) {
+        setShowDeleteConfirm(false);
+        onClose();
+      } else {
+        alert(res.error || 'Failed to delete order.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'An error occurred.');
+    } finally {
+      setTransitioning(false);
+    }
+  };
 
   if (!isOpen || !order) return null;
 
@@ -50,6 +85,11 @@ export function OrderDrawer({
     if (!newStatus) return;
 
     if (newStatus === 'DISPATCHED') {
+      const balance = order.balanceAmount ? parseFloat(order.balanceAmount.toString()) : 0;
+      if (balance > 0) {
+        alert(`Cannot dispatch order with outstanding balance of ₹${balance.toFixed(2)}. Please collect the remaining payment first.`);
+        return;
+      }
       setShowDispatchForm(true);
       return;
     }
@@ -88,6 +128,12 @@ export function OrderDrawer({
     e.preventDefault();
     if (!courierName || !trackingId) {
       alert("Courier Name and Tracking ID are mandatory for dispatching.");
+      return;
+    }
+
+    const balance = order.balanceAmount ? parseFloat(order.balanceAmount.toString()) : 0;
+    if (balance > 0) {
+      alert(`Cannot dispatch order with outstanding balance of ₹${balance.toFixed(2)}. Please collect the remaining payment first.`);
       return;
     }
 
@@ -200,10 +246,27 @@ export function OrderDrawer({
                 <span className="font-semibold text-zinc-100 text-base">₹{parseFloat(order.totalAmount || "0").toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
+                <span className="text-zinc-400">Advance Paid</span>
+                <span className="font-medium text-zinc-300">₹{parseFloat(order.advanceAmount || "0").toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-zinc-400">Balance Due</span>
+                <span className={`font-semibold ${parseFloat(order.balanceAmount || "0") > 0 ? 'text-amber-500 font-bold' : 'text-zinc-350'}`}>
+                  ₹{parseFloat(order.balanceAmount || "0").toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-zinc-800/60">
                 <span className="text-zinc-400">Payment Status</span>
-                <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${order.paymentStatus === 'VERIFIED' ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-900' : 'bg-amber-900/30 text-amber-500 border border-amber-900'}`}>
-                  {order.paymentStatus}
-                </div>
+                {(() => {
+                  const fStatus = getFinancialStatus(order);
+                  const label = getFinancialStatusLabel(fStatus, order.balanceAmount ? parseFloat(order.balanceAmount) : 0);
+                  const color = getFinancialStatusColor(fStatus);
+                  return (
+                    <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide ${color}`}>
+                      {label}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -287,8 +350,49 @@ export function OrderDrawer({
             </form>
           )}
 
+          {/* Admin Tools Section */}
+          {isAdmin && (
+            <div className="pt-4 border-t border-zinc-800/80 mt-6">
+              <button 
+                type="button"
+                disabled={transitioning}
+                onClick={handleDeleteClick}
+                className="w-full py-2.5 rounded-md bg-red-950/20 text-red-400 hover:bg-red-950/40 transition-colors border border-red-900/30 font-semibold text-center text-sm disabled:opacity-50"
+              >
+                Delete Order
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 max-w-sm w-full space-y-4 shadow-xl text-left">
+            <h3 className="text-lg font-bold text-zinc-100">Delete Order {order.orderNumber || order.businessId || order.id.slice(0, 8)}?</h3>
+            <p className="text-sm text-zinc-400">This action cannot be undone. The order will be cancelled and marked as deleted in the system.</p>
+            <div className="flex justify-end gap-3 font-semibold text-xs mt-2">
+              <button
+                type="button"
+                disabled={transitioning}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-350"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={transitioning}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded bg-red-650 hover:bg-red-600 text-white disabled:opacity-50"
+              >
+                {transitioning ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

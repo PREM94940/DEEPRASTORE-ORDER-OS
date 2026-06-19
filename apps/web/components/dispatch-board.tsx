@@ -3,6 +3,7 @@
 import * as React from "react";
 import { moveDispatchOrderAction, dispatchOrderAction } from "@/app/(staff)/actions/command-center";
 import { Truck, Package, CheckCircle, ArrowRight, X, Globe } from "lucide-react";
+import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
 
 interface Order {
   id: string;
@@ -10,6 +11,9 @@ interface Order {
   customerName: string;
   customerPhone: string;
   status: string;
+  balanceAmount: string | null;
+  advanceAmount: string | null;
+  paymentStatus: string;
   courierName: string | null;
   trackingId: string | null;
   trackingUrl: string | null;
@@ -82,30 +86,49 @@ export function DispatchBoard({ initialOrders }: { initialOrders: Order[] }) {
           </span>
         </div>
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-          {readyOrders.map(order => (
-            <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3 shadow-md hover:border-zinc-700 transition-colors">
-              <div className="flex justify-between items-start">
-                <span className="font-mono text-zinc-100 font-semibold">{order.orderNumber}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-zinc-800 text-zinc-400">
-                  READY TO SHIP
-                </span>
-              </div>
+          {readyOrders.map(order => {
+            const fStatus = getFinancialStatus(order);
+            const balance = order.balanceAmount ? parseFloat(order.balanceAmount) : 0;
+            const label = getFinancialStatusLabel(fStatus, balance);
+            const color = getFinancialStatusColor(fStatus);
+            const isBlocked = balance > 0;
 
-              <div className="text-xs space-y-1 text-zinc-400">
-                <p><strong>Customer:</strong> {order.customerName}</p>
-                <p><strong>Phone:</strong> {order.customerPhone}</p>
-                <p><strong>Created:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
-              </div>
+            return (
+              <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3 shadow-md hover:border-zinc-700 transition-colors">
+                <div className="flex justify-between items-start">
+                  <span className="font-mono text-zinc-100 font-semibold">{order.orderNumber}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-400 border border-zinc-700">
+                      READY TO SHIP
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wider ${color}`}>
+                      {label}
+                    </span>
+                  </div>
+                </div>
 
-              <button
-                disabled={isPending}
-                onClick={() => setShipModalOrder(order)}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-semibold transition-colors disabled:opacity-50"
-              >
-                Ship / Dispatch Order <Truck size={14} />
-              </button>
-            </div>
-          ))}
+                <div className="text-xs space-y-1 text-zinc-400">
+                  <p><strong>Customer:</strong> {order.customerName}</p>
+                  <p><strong>Phone:</strong> {order.customerPhone}</p>
+                  <p><strong>Created:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
+                </div>
+
+                {isBlocked && (
+                  <div className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded flex items-center justify-center gap-1.5">
+                    <span>⚠️ Collect Balance First</span>
+                  </div>
+                )}
+
+                <button
+                  disabled={isPending || isBlocked}
+                  onClick={() => setShipModalOrder(order)}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Ship / Dispatch Order <Truck size={14} />
+                </button>
+              </div>
+            );
+          })}
           {readyOrders.length === 0 && (
             <p className="text-center text-zinc-650 py-10 text-xs italic">No orders ready to ship</p>
           )}
@@ -123,33 +146,43 @@ export function DispatchBoard({ initialOrders }: { initialOrders: Order[] }) {
           </span>
         </div>
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-          {dispatchedOrders.map(order => (
-            <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3 shadow-md hover:border-zinc-700 transition-colors">
-              <div className="flex justify-between items-start">
-                <span className="font-mono text-zinc-100 font-semibold">{order.orderNumber}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-900/30 text-amber-500 border border-amber-900/30 font-semibold">
-                  DISPATCHED
-                </span>
-              </div>
+          {dispatchedOrders.map(order => {
+            const fStatus = getFinancialStatus(order);
+            const label = getFinancialStatusLabel(fStatus, order.balanceAmount ? parseFloat(order.balanceAmount) : 0);
+            const color = getFinancialStatusColor(fStatus);
+            return (
+              <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3 shadow-md hover:border-zinc-700 transition-colors">
+                <div className="flex justify-between items-start">
+                  <span className="font-mono text-zinc-100 font-semibold">{order.orderNumber}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-500 border border-amber-900/30 font-semibold">
+                      DISPATCHED
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wider ${color}`}>
+                      {label}
+                    </span>
+                  </div>
+                </div>
 
-              <div className="text-xs space-y-1 text-zinc-400">
-                <p><strong>Customer:</strong> {order.customerName}</p>
-                <p><strong>Courier:</strong> <span className="text-zinc-200 font-semibold">{order.courierName}</span></p>
-                <p><strong>Tracking ID:</strong> <span className="text-zinc-200 font-mono">{order.trackingId}</span></p>
-                {order.dispatchDate && (
-                  <p><strong>Shipped:</strong> {new Date(order.dispatchDate).toLocaleString()}</p>
-                )}
-              </div>
+                <div className="text-xs space-y-1 text-zinc-400">
+                  <p><strong>Customer:</strong> {order.customerName}</p>
+                  <p><strong>Courier:</strong> <span className="text-zinc-200 font-semibold">{order.courierName}</span></p>
+                  <p><strong>Tracking ID:</strong> <span className="text-zinc-200 font-mono">{order.trackingId}</span></p>
+                  {order.dispatchDate && (
+                    <p><strong>Shipped:</strong> {new Date(order.dispatchDate).toLocaleString()}</p>
+                  )}
+                </div>
 
-              <button
-                disabled={isPending}
-                onClick={() => handleMarkDelivered(order.id)}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-semibold transition-colors disabled:opacity-50"
-              >
-                Mark Delivered <CheckCircle size={14} />
-              </button>
-            </div>
-          ))}
+                <button
+                  disabled={isPending}
+                  onClick={() => handleMarkDelivered(order.id)}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-semibold transition-colors disabled:opacity-50"
+                >
+                  Mark Delivered <CheckCircle size={14} />
+                </button>
+              </div>
+            );
+          })}
           {dispatchedOrders.length === 0 && (
             <p className="text-center text-zinc-650 py-10 text-xs italic">No orders dispatched</p>
           )}
@@ -167,22 +200,32 @@ export function DispatchBoard({ initialOrders }: { initialOrders: Order[] }) {
           </span>
         </div>
         <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-          {deliveredOrders.map(order => (
-            <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3 shadow-md hover:border-zinc-700 transition-colors">
-              <div className="flex justify-between items-start">
-                <span className="font-mono text-zinc-100 font-semibold">{order.orderNumber}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-500 border border-emerald-900/30 font-semibold">
-                  DELIVERED
-                </span>
-              </div>
+          {deliveredOrders.map(order => {
+            const fStatus = getFinancialStatus(order);
+            const label = getFinancialStatusLabel(fStatus, order.balanceAmount ? parseFloat(order.balanceAmount) : 0);
+            const color = getFinancialStatusColor(fStatus);
+            return (
+              <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3 shadow-md hover:border-zinc-700 transition-colors">
+                <div className="flex justify-between items-start">
+                  <span className="font-mono text-zinc-100 font-semibold">{order.orderNumber}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-400 border border-emerald-900/30 font-semibold">
+                      DELIVERED
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold tracking-wider ${color}`}>
+                      {label}
+                    </span>
+                  </div>
+                </div>
 
-              <div className="text-xs space-y-1 text-zinc-400">
-                <p><strong>Customer:</strong> {order.customerName}</p>
-                <p><strong>Courier:</strong> {order.courierName}</p>
-                <p><strong>Tracking ID:</strong> {order.trackingId}</p>
+                <div className="text-xs space-y-1 text-zinc-400">
+                  <p><strong>Customer:</strong> {order.customerName}</p>
+                  <p><strong>Courier:</strong> {order.courierName}</p>
+                  <p><strong>Tracking ID:</strong> {order.trackingId}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {deliveredOrders.length === 0 && (
             <p className="text-center text-zinc-650 py-10 text-xs italic">No delivered orders</p>
           )}

@@ -28,15 +28,27 @@ export default async function TrackPage() {
   // Fetch orders for this customer
   const customerOrders = await db.select()
     .from(orders)
-    .where(eq(orders.customerPhone, session.phone))
+    .where(
+      and(
+        eq(orders.customerPhone, session.phone),
+        eq(orders.isDeleted, false)
+      )
+    )
     .orderBy(desc(orders.createdAt));
 
-  if (customerOrders.length === 0) {
+  // Fetch enquiries for this customer
+  const { enquiries } = await import('@deeprastore/infrastructure/src/schema');
+  const customerEnquiries = await db.select()
+    .from(enquiries)
+    .where(eq(enquiries.customerPhone, session.phone))
+    .orderBy(desc(enquiries.createdAt));
+
+  if (customerOrders.length === 0 && customerEnquiries.length === 0) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-4">
         <div className="text-6xl mb-4">📦</div>
-        <h2 className="text-2xl font-bold">No Orders Found</h2>
-        <p className="text-white/50 mt-2">We couldn't find any orders linked to {session.phone}</p>
+        <h2 className="text-2xl font-bold">No Orders or Requests Found</h2>
+        <p className="text-white/50 mt-2">We couldn't find any active tailoring orders or requests linked to {session.phone}</p>
         <form action={async () => {
           'use server';
           const { logoutCustomer } = await import('@/app/(customer)/actions/customer-auth');
@@ -52,7 +64,7 @@ export default async function TrackPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <CustomerDashboard orders={customerOrders} phone={session.phone} />
+      <CustomerDashboard orders={customerOrders} enquiries={customerEnquiries} phone={session.phone} />
     </div>
   );
 }

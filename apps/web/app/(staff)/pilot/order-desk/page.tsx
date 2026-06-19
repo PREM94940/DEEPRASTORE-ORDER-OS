@@ -2,11 +2,12 @@ export const dynamic = "force-dynamic";
 import { getPendingEnquiries } from '@/app/(staff)/actions/order-desk';
 import { UnifiedOrderDesk } from '@/components/unified-order-desk';
 
-export default async function OrderDeskPage({ searchParams }: { searchParams: { enquiry?: string } }) {
+export default async function OrderDeskPage({ searchParams }: { searchParams: Promise<{ enquiry?: string }> }) {
+  const resolvedSearchParams = await searchParams;
   const enquiries = await getPendingEnquiries();
   
-  const selectedEnquiry = searchParams.enquiry 
-    ? enquiries.find(e => e.id === searchParams.enquiry)
+  const selectedEnquiry = resolvedSearchParams.enquiry 
+    ? enquiries.find(e => e.id === resolvedSearchParams.enquiry)
     : null;
 
   return (
@@ -35,9 +36,30 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: { 
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-bold">{enq.customerName}</h3>
-                  <span className="text-xs bg-white/10 px-2 py-1 rounded-full">{enq.source}</span>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full font-mono text-white/50">{enq.source}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      enq.status === 'REQUEST' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/10' :
+                      enq.status === 'PRICE_QUOTED' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/10' :
+                      enq.status === 'INVOICE_SENT' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/10' :
+                      enq.status === 'PAYMENT_RECEIVED' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/10' :
+                      enq.status === 'CUSTOMER_APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/10' :
+                      enq.status === 'REJECTED' ? 'bg-red-500/20 text-red-400 border border-red-500/10' :
+                      enq.status === 'NO_RESPONSE' ? 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/10' :
+                      'bg-white/10 text-white/60'
+                    }`}>
+                      {enq.status.replace('_', ' ')}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm text-white/60 mb-2">{enq.customerPhone}</p>
+                <div className="flex justify-between items-center text-xs text-white/60 mb-2">
+                  <span>{enq.customerPhone}</span>
+                  {enq.assignedTo ? (
+                    <span className="text-emerald-400 font-bold bg-emerald-500/5 px-1.5 py-0.5 rounded border border-emerald-500/15">👤 {enq.assignedTo}</span>
+                  ) : (
+                    <span className="text-white/30 italic">👤 Unassigned</span>
+                  )}
+                </div>
                 <p className="text-sm text-white/80 line-clamp-2">{enq.productType}</p>
                 
                 {/* Thumbnail Preview */}

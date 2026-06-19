@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { db } from "@deeprastore/infrastructure/src/db/client";
 import { orders } from "@deeprastore/infrastructure/src/schema/order";
-import { desc } from "drizzle-orm";
+import { desc, and, eq } from "drizzle-orm";
 import { OperationsGrid } from "@/components/operations-grid";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +16,15 @@ export default async function DashboardPage() {
       source: orders.source,
       orderCategory: orders.orderCategory,
       totalAmount: orders.totalAmount,
+      balanceAmount: orders.balanceAmount,
+      advanceAmount: orders.advanceAmount,
       status: orders.status,
       paymentStatus: orders.paymentStatus,
       primaryImageUrl: orders.primaryImageUrl,
       createdAt: orders.createdAt,
     })
     .from(orders)
+    .where(eq(orders.isDeleted, false))
     // @ts-ignore
     .orderBy(desc(orders.createdAt))
     .limit(50);

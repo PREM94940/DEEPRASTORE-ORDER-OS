@@ -12,6 +12,7 @@ export default async function DispatchPage() {
   const rawOrders = await db.select().from(orders).where(
     and(
       eq(orders.tenantId, MOCK_TENANT_ID),
+      eq(orders.isDeleted, false),
       or(
         eq(orders.status, 'READY_TO_SHIP'),
         eq(orders.status, 'DISPATCHED'),
@@ -26,6 +27,9 @@ export default async function DispatchPage() {
     customerName: o.customerName || 'Unknown',
     customerPhone: o.customerPhone || 'N/A',
     status: o.status,
+    balanceAmount: o.balanceAmount,
+    advanceAmount: o.advanceAmount,
+    paymentStatus: o.paymentStatus,
     courierName: o.courierName,
     trackingId: o.trackingId,
     trackingUrl: o.trackingUrl,

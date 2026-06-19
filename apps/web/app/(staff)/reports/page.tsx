@@ -1,14 +1,14 @@
 import { db } from '@deeprastore/infrastructure/src/db/client';
 import { orders } from '@deeprastore/infrastructure/src/schema/order';
-import { sql } from 'drizzle-orm';
+import { sql, and, eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ReportsPage() {
   // Simple operational query stats
-  const [totalOrdersRes] = await db.select({ count: sql`count(*)` }).from(orders);
-  const [activeProductionRes] = await db.select({ count: sql`count(*)` }).from(orders).where(sql`status IN ('CONFIRMED', 'CUTTING', 'STITCHING', 'QC', 'HOLD')`);
-  const [totalRevenueRes] = await db.select({ total: sql`sum(total_amount)` }).from(orders);
+  const [totalOrdersRes] = await db.select({ count: sql`count(*)` }).from(orders).where(eq(orders.isDeleted, false));
+  const [activeProductionRes] = await db.select({ count: sql`count(*)` }).from(orders).where(and(eq(orders.isDeleted, false), sql`status IN ('CONFIRMED', 'CUTTING', 'STITCHING', 'QC', 'HOLD')`));
+  const [totalRevenueRes] = await db.select({ total: sql`sum(total_amount)` }).from(orders).where(eq(orders.isDeleted, false));
 
   const totalOrders = Number(totalOrdersRes?.count || 0);
   const activeProduction = Number(activeProductionRes?.count || 0);

@@ -22,6 +22,7 @@ export default async function PaymentCenterPage() {
     })
     .from(payments)
     .innerJoin(orders, eq(payments.orderId, orders.id))
+    .where(eq(orders.isDeleted, false))
     .orderBy(desc(payments.createdAt));
 
   return (

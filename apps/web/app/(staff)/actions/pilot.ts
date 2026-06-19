@@ -24,6 +24,7 @@ export async function getPilotMetrics() {
         SUM(CASE WHEN production_status = 'QC_PENDING' AND EXTRACT(EPOCH FROM (NOW() - status_updated_at)) > 86400 THEN 1 ELSE 0 END) as stuck_qc,
         SUM(CASE WHEN status NOT IN ('DELIVERED', 'CANCELLED') THEN 1 ELSE 0 END) as overdue_orders
       FROM orders
+      WHERE is_deleted = false
     `),
     db.execute(sql`
       SELECT 

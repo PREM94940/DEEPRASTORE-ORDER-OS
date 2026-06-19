@@ -80,7 +80,12 @@ export async function getCustomerProfileAction(phone: string) {
     const [address] = await db.select({ city: customerAddresses.city }).from(customerAddresses).where(eq(customerAddresses.customerPhone, normalized)).limit(1);
 
     // 3. Get orders
-    const customerOrders = await db.select().from(orders).where(eq(orders.customerPhone, normalized)).orderBy(desc(orders.createdAt)).limit(10);
+    const customerOrders = await db.select().from(orders).where(
+      and(
+        eq(orders.customerPhone, normalized),
+        eq(orders.isDeleted, false)
+      )
+    ).orderBy(desc(orders.createdAt)).limit(10);
 
     // 4. Get payments
     let customerPayments: any[] = [];
@@ -120,7 +125,10 @@ export async function getCustomerProfileAction(phone: string) {
           productionStatus: o.productionStatus,
           dispatchStatus: o.dispatchStatus,
           status: o.status,
-          totalAmount: Number(o.totalAmount || 0)
+          totalAmount: Number(o.totalAmount || 0),
+          balanceAmount: Number(o.balanceAmount || 0),
+          advanceAmount: Number(o.advanceAmount || 0),
+          paymentStatus: o.paymentStatus
         })),
         payments: customerPayments.map(p => ({
           id: p.id,
