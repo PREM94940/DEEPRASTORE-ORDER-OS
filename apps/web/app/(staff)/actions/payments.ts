@@ -7,8 +7,11 @@ import { revalidatePath } from 'next/cache';
 
 const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
+import { requireStaffAuth } from './auth';
+
 export async function approvePaymentAction(orderId: string, paymentId: string, staffName: string) {
   try {
+    await requireStaffAuth();
     await db.transaction(async (tx) => {
       // 1. Update the order
       await tx.update(orders)
@@ -41,8 +44,9 @@ export async function approvePaymentAction(orderId: string, paymentId: string, s
   }
 }
 
-export async function rejectPaymentAction(orderId: string, paymentId: string, staffName: string = 'Staff01') {
+export async function rejectPaymentAction(orderId: string, paymentId: string, staffName: string) {
   try {
+    await requireStaffAuth();
     await db.transaction(async (tx) => {
       // 1. Update the order
       await tx.update(orders)

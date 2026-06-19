@@ -3,6 +3,25 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { db } from '@deeprastore/infrastructure'
+import { approvedStaff } from '@deeprastore/infrastructure/src/schema/staff'
+import { eq } from 'drizzle-orm'
+
+export async function requireStaffAuth() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('Unauthorized: No active session')
+  }
+
+  const [staff] = await db.select().from(approvedStaff).where(eq(approvedStaff.email, user.email || ''))
+  
+  if (!staff || !staff.isActive) {
+    throw new Error('Unauthorized: Staff account inactive or not found')
+  }
+
+  return { user, staff }
+}
 
 export async function login(formData: FormData) {
   const supabase = await createClient()

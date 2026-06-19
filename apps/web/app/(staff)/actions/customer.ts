@@ -6,6 +6,7 @@ import { orders, payments } from '@deeprastore/infrastructure/src/schema/order';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
+import { requireStaffAuth } from './auth';
 
 function normalizePhone(phone: string | null | undefined): string {
   if (!phone) return '';
@@ -28,6 +29,7 @@ export async function updateMeasurementsAction(data: {
   customFields?: any;
 }) {
   try {
+    await requireStaffAuth();
     const normalized = normalizePhone(data.customerPhone);
     const [cust] = await db.select().from(customers).where(eq(customers.phone, normalized));
 
@@ -52,6 +54,7 @@ export async function updateMeasurementsAction(data: {
 
 export async function addCustomerNoteAction(phone: string, note: string) {
   try {
+    await requireStaffAuth();
     const normalized = normalizePhone(phone);
     await db.insert(customerNotes).values({
       id: uuidv4(),
@@ -70,6 +73,7 @@ export async function addCustomerNoteAction(phone: string, note: string) {
 
 export async function getCustomerProfileAction(phone: string) {
   try {
+    await requireStaffAuth();
     const normalized = normalizePhone(phone);
     if (!normalized) return { success: false, error: 'Invalid phone number' };
 

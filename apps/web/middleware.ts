@@ -16,6 +16,6 @@ export const config = {
      * - pilot/monitoring (TEST BYPASS)
      * - pilot/order-desk (TEST BYPASS)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|pilot/monitoring|pilot/order-desk).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

@@ -17,8 +17,11 @@ function safeRevalidatePath(path: string) {
   }
 }
 
+import { requireStaffAuth } from './auth';
+
 export async function getPendingEnquiries() {
   try {
+    await requireStaffAuth();
     const result = await db.select({
       enquiry: enquiries,
       quote: enquiryQuotes
@@ -45,6 +48,7 @@ export async function getPendingEnquiries() {
 
 export async function convertEnquiryToOrder(enquiryId: string) {
   try {
+    await requireStaffAuth();
     const [enquiry] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
     if (!enquiry) return { error: 'Enquiry not found' };
 
@@ -68,6 +72,7 @@ export async function updateEnquiryStatusAction(
   }
 ) {
   try {
+    await requireStaffAuth();
     const [enqBefore] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
     const beforeStatus = enqBefore ? enqBefore.status : 'REQUEST';
 
