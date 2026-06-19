@@ -5,11 +5,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbopack: {
-      root: path.join(__dirname, '../../'),
-    },
-  },
+  experimental: {},
   transpilePackages: ['@deeprastore/infrastructure', '@deeprastore/core-domain'],
   typescript: {
     ignoreBuildErrors: true,
