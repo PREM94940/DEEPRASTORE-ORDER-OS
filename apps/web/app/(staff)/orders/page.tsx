@@ -21,6 +21,7 @@ export default async function OrdersPage() {
       status: orders.status,
       paymentStatus: orders.paymentStatus,
       primaryImageUrl: orders.primaryImageUrl,
+      trackingToken: orders.trackingToken,
       createdAt: orders.createdAt,
     })
     .from(orders)

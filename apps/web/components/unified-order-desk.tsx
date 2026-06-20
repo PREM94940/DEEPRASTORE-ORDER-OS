@@ -535,7 +535,7 @@ Thank you for shopping with us!`;
           <button
             type="button"
             onClick={() => {
-              navigator.clipboard.writeText(window.location.origin + '/intake');
+              navigator.clipboard.writeText(window.location.origin + '/order');
               alert('Customer Intake Form Link copied to clipboard! Share this link with customers so they can fill out their details and measurements.');
             }}
             className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded transition-colors flex items-center gap-2 border border-zinc-700"
