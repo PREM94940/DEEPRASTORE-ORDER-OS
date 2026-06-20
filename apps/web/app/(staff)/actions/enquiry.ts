@@ -11,9 +11,9 @@ export async function submitEnquiryAction(data: any) {
     const tenantId = '11111111-1111-1111-1111-111111111111'; // Mocked tenant ID for single tenant store
     
     // 1. Generate sequential request number
-    const seqRes = await db.execute(sql`SELECT nextval('enquiry_number_seq')`);
-    const nextVal = ((seqRes as any).rows || seqRes)[0]?.nextval || 1;
-    const enquiryNumber = `REQUEST-${String(nextVal).padStart(4, '0')}`;
+    const countRes = await db.execute(sql`SELECT COUNT(*) as count FROM enquiries WHERE tenant_id = ${tenantId}`);
+    const count = parseInt(((countRes as any).rows || countRes)[0]?.count as string) || 0;
+    const enquiryNumber = `REQUEST-${String(count + 1).padStart(4, '0')}`;
 
     // 2. Generate secure UUID tracking token
     const trackingToken = uuidv4();
