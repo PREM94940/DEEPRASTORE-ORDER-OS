@@ -34,9 +34,11 @@ export async function approvePaymentAction(orderId: string, paymentId: string, s
         .where(eq(payments.id, paymentId));
     });
 
+    // Only revalidate paths that directly show payment data
+    // Avoid revalidating '/' (dashboard) here — it triggers heavy getPilotMetrics queries
+    // and can cause Vercel function timeouts, making the UI appear frozen
     revalidatePath('/payments');
-    revalidatePath('/command-center');
-    revalidatePath('/');
+    revalidatePath('/orders');
     return { success: true };
   } catch (error: any) {
     console.error('Failed to approve payment:', error);
@@ -68,8 +70,7 @@ export async function rejectPaymentAction(orderId: string, paymentId: string, st
     });
 
     revalidatePath('/payments');
-    revalidatePath('/command-center');
-    revalidatePath('/');
+    revalidatePath('/orders');
     return { success: true };
   } catch (error: any) {
     console.error('Failed to reject payment:', error);
