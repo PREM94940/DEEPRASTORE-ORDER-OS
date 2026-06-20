@@ -27,7 +27,7 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
             enquiries.map((enq) => (
               <a 
                 key={enq.id} 
-                href={`?enquiry=${enq.id}`}
+                href={`?tab=Intake&enquiry=${enq.id}`}
                 className={`block p-4 rounded-lg border transition-colors ${
                   selectedEnquiry?.id === enq.id 
                     ? 'border-[#059669] bg-[#059669]/10' 

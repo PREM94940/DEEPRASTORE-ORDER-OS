@@ -79,6 +79,19 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
         ...(initialEnquiry.designImages || [])
       ]);
 
+      setFormData(prev => ({
+        ...prev,
+        enquiryId: initialEnquiry.id,
+        name: initialEnquiry.customerName || '',
+        phone: initialEnquiry.customerPhone || '',
+        email: initialEnquiry.email || '',
+        address: initialEnquiry.address || '',
+        source: initialEnquiry.source || 'WALK_IN',
+        orderType: initialEnquiry.productType ? 'CUSTOM_STITCHING' : 'READY_MADE',
+        productDetails: initialEnquiry.productType || '',
+        notes: initialEnquiry.notes || '',
+      }));
+
       // Sync quote values
       setBasePrice(initialEnquiry.quote?.basePrice || '');
       setDiscountAmount(initialEnquiry.quote?.discountAmount || '');
