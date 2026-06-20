@@ -11,9 +11,9 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
     : null;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#0a0a0a] text-white">
+    <div className="flex flex-col md:flex-row h-full bg-[#0a0a0a] text-white">
       {/* LEFT PANEL: INTAKE QUEUE */}
-      <div className="w-full md:w-1/3 border-r border-white/10 flex flex-col max-h-screen overflow-hidden">
+      <div className="w-full md:w-1/3 border-r border-white/10 flex flex-col h-full overflow-hidden">
         <div className="p-4 border-b border-white/10">
           <h2 className="text-xl font-bold">Intake Queue</h2>
           <p className="text-sm text-white/50">{enquiries.length} New Enquiries</p>
@@ -77,7 +77,7 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
       </div>
 
       {/* RIGHT PANEL: ORDER DESK */}
-      <div className="w-full md:w-2/3 flex flex-col max-h-screen overflow-hidden">
+      <div className="w-full md:w-2/3 flex flex-col h-full overflow-hidden">
         <div className="p-4 border-b border-white/10 flex justify-between items-center">
           <h2 className="text-xl font-bold">
             {selectedEnquiry ? 'Convert Enquiry to Order' : 'New Order'}

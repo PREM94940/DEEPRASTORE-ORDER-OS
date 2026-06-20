@@ -617,7 +617,7 @@ Thank you for shopping with us!`;
       )}
 
       {/* ORDER CONVERSION / CREATION FORM */}
-      <form onSubmit={handleSubmit} className="bg-[#111] p-6 rounded-xl border border-white/10 space-y-8">
+      <form onSubmit={handleSubmit} className="bg-[#111] p-4 rounded-xl border border-white/10 space-y-4">
         {/* HEADER FOR NEW ORDER */}
         <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
           <h2 className="text-xl font-bold text-white">New Order</h2>
@@ -643,20 +643,20 @@ Thank you for shopping with us!`;
               placeholder="Phone Number *" 
               value={formData.phone}
               onChange={e => setFormData({...formData, phone: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             />
             <input 
               required 
               placeholder="Full Name *" 
               value={formData.name}
               onChange={e => setFormData({...formData, name: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             />
             <select 
               required
               value={formData.source}
               onChange={e => setFormData({...formData, source: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             >
               <option value="WALK_IN">Walk-In</option>
               <option value="WHATSAPP">WhatsApp</option>
@@ -671,13 +671,13 @@ Thank you for shopping with us!`;
               placeholder="Email Address (Optional)" 
               value={formData.email}
               onChange={e => setFormData({...formData, email: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             />
             <input 
               placeholder="Delivery Address (Optional)" 
               value={formData.address}
               onChange={e => setFormData({...formData, address: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             />
           </div>
         </div>
@@ -690,7 +690,7 @@ Thank you for shopping with us!`;
               required
               value={formData.orderType}
               onChange={e => setFormData({...formData, orderType: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             >
               <option value="READY_MADE">Ready Product</option>
               <option value="CUSTOM_STITCHING">Custom Stitching</option>
@@ -702,7 +702,7 @@ Thank you for shopping with us!`;
               placeholder="Product / Description" 
               value={formData.productDetails}
               onChange={e => setFormData({...formData, productDetails: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             />
           </div>
 
@@ -711,7 +711,7 @@ Thank you for shopping with us!`;
               <select 
                 value={formData.fabricSource}
                 onChange={e => setFormData({...formData, fabricSource: e.target.value})}
-                className="bg-[#222] border border-white/10 rounded-lg p-3 w-full"
+                className="bg-[#222] border border-white/10 rounded-lg p-2.5 text-sm w-full"
               >
                 <option value="NONE">No Fabric Needed</option>
                 <option value="CUSTOMER">Customer Provided Fabric</option>
@@ -723,7 +723,7 @@ Thank you for shopping with us!`;
                   placeholder="Fabric Count (e.g. 2.5m)" 
                   value={formData.fabricCount}
                   onChange={e => setFormData({...formData, fabricCount: e.target.value})}
-                  className="bg-[#222] border border-white/10 rounded-lg p-3 w-full"
+                  className="bg-[#222] border border-white/10 rounded-lg p-2.5 text-sm w-full"
                 />
               )}
               
@@ -732,7 +732,7 @@ Thank you for shopping with us!`;
                   placeholder="Fabric/Product Code" 
                   value={formData.fabricCode}
                   onChange={e => setFormData({...formData, fabricCode: e.target.value})}
-                  className="bg-[#222] border border-white/10 rounded-lg p-3 w-full"
+                  className="bg-[#222] border border-white/10 rounded-lg p-2.5 text-sm w-full"
                 />
               )}
             </div>
@@ -746,7 +746,7 @@ Thank you for shopping with us!`;
             <select 
               value={formData.measurementStatus}
               onChange={e => setFormData({...formData, measurementStatus: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             >
               <option value="USE_EXISTING">Use Existing Measurements</option>
               <option value="TAKE_NEW">Take New Measurements</option>
@@ -763,14 +763,14 @@ Thank you for shopping with us!`;
             <input 
               required type="number" placeholder="Total Amount (₹)" 
               value={formData.totalAmount} onChange={e => setFormData({...formData, totalAmount: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             />
             <input 
               type="number" placeholder="Advance Received (₹)" 
               value={formData.advanceAmount} onChange={e => setFormData({...formData, advanceAmount: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             />
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full text-white/50 flex items-center justify-between">
+            <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full text-white/50 flex items-center justify-between">
               <span>Balance:</span>
               <span className="font-bold text-white">₹{formData.balanceAmount}</span>
             </div>
@@ -780,7 +780,7 @@ Thank you for shopping with us!`;
             <select 
               value={formData.paymentMethod}
               onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
             >
               <option value="PENDING">Pending</option>
               <option value="CASH">Cash</option>
@@ -792,7 +792,7 @@ Thank you for shopping with us!`;
               <input 
                 required placeholder="UTR / Transaction ID" 
                 value={formData.utrNumber} onChange={e => setFormData({...formData, utrNumber: e.target.value})}
-                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
               />
             )}
           </div>
@@ -803,7 +803,7 @@ Thank you for shopping with us!`;
               <input 
                 type="date"
                 value={formData.orderDate} onChange={e => setFormData({...formData, orderDate: e.target.value})}
-                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
               />
             </div>
             <div className="space-y-1">
@@ -811,7 +811,7 @@ Thank you for shopping with us!`;
               <input 
                 type="date"
                 value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})}
-                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
               />
             </div>
           </div>
@@ -842,7 +842,7 @@ Thank you for shopping with us!`;
           <textarea 
             rows={3} placeholder="Notes for Master Ji (e.g. Deep neck, extra lining...)" 
             value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}
-            className="bg-[#1a1a1a] border border-white/10 rounded-lg p-3 w-full"
+            className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
           />
         </div>
 
