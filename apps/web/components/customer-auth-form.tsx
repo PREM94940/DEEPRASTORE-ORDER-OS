@@ -43,8 +43,7 @@ export function CustomerAuthForm() {
 
     const res = await verifyOTP(phone, otp);
     if (res.success) {
-      // Hard refresh to ensure cookie is read
-      window.location.reload();
+      router.refresh();
     } else {
       setError(res.error || 'Invalid OTP');
       setLoading(false);

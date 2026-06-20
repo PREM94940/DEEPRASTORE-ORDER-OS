@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CheckCircle, XCircle, Clock, Search, Image as ImageIcon, X } from "lucide-react";
 import { approvePaymentAction, rejectPaymentAction } from "@/app/(staff)/actions/payments";
+import { useRouter } from "next/navigation";
 
 type PaymentRow = {
   id: string;
@@ -23,10 +24,18 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
   const [selectedPayment, setSelectedPayment] = React.useState<PaymentRow | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
+  const router = useRouter();
+
+  const [optimisticData, addOptimisticPayment] = React.useOptimistic(
+    initialData,
+    (state: PaymentRow[], update: Partial<PaymentRow>) => {
+      return state.map(p => p.id === update.id ? { ...p, ...update } : p);
+    }
+  );
 
   // Filter and search
   const filteredData = React.useMemo(() => {
-    return initialData.filter((payment) => {
+    return optimisticData.filter((payment) => {
       const matchesQueue = payment.status === activeQueue;
       const matchesSearch = searchQuery
         ? (payment.utr?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,7 +45,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
         : true;
       return matchesQueue && matchesSearch;
     });
-  }, [initialData, activeQueue, searchQuery]);
+  }, [optimisticData, activeQueue, searchQuery]);
 
   // Set default selected payment on queue change
   React.useEffect(() => {
@@ -49,10 +58,10 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
     if (!staffName) return;
 
     startTransition(async () => {
+      addOptimisticPayment({ id: selectedPayment.id, status: 'VERIFIED' });
       const res = await approvePaymentAction(selectedPayment.orderId, selectedPayment.id, staffName);
       if (res.success) {
-        alert("Payment verified. Order status updated to CONFIRMED.");
-        window.location.reload();
+        router.refresh();
       } else {
         alert("Failed to verify payment: " + res.error);
       }
@@ -67,10 +76,10 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
     if (!staffName) return;
 
     startTransition(async () => {
+      addOptimisticPayment({ id: selectedPayment.id, status: 'REJECTED' });
       const res = await rejectPaymentAction(selectedPayment.orderId, selectedPayment.id, staffName);
       if (res.success) {
-        alert("Payment rejected. Order status updated to PAYMENT_REJECTED.");
-        window.location.reload();
+        router.refresh();
       } else {
         alert("Failed to reject payment: " + res.error);
       }
@@ -79,7 +88,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
 
   // Count helper
   const getCount = (status: string) => {
-    return initialData.filter(p => p.status === status).length;
+    return optimisticData.filter(p => p.status === status).length;
   };
 
   return (
@@ -88,8 +97,8 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
       {/* Left List: Queue */}
       <div className="w-1/3 flex flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden">
         {/* Search */}
-        <div className="p-4 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-2">
-          <Search size={16} className="text-zinc-500" />
+        <div className="p-3 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-2">
+          <Search size={14} className="text-zinc-500" />
           <input 
             type="text" 
             placeholder="Search UTR, Phone, Name..." 
@@ -103,19 +112,19 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
         <div className="flex border-b border-zinc-800 bg-zinc-900/20 text-xs font-semibold">
           <button 
             onClick={() => setActiveQueue('PENDING')}
-            className={`flex-1 py-3 text-center border-b-2 transition-colors ${activeQueue === 'PENDING' ? 'border-amber-500 text-amber-500 bg-amber-500/5' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
+            className={`flex-1 py-2 text-center border-b-2 transition-colors ${activeQueue === 'PENDING' ? 'border-amber-500 text-amber-500 bg-amber-500/5' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
           >
             Pending ({getCount('PENDING')})
           </button>
           <button 
             onClick={() => setActiveQueue('VERIFIED')}
-            className={`flex-1 py-3 text-center border-b-2 transition-colors ${activeQueue === 'VERIFIED' ? 'border-emerald-500 text-emerald-500 bg-emerald-500/5' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
+            className={`flex-1 py-2 text-center border-b-2 transition-colors ${activeQueue === 'VERIFIED' ? 'border-emerald-500 text-emerald-500 bg-emerald-500/5' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
           >
             Approved ({getCount('VERIFIED')})
           </button>
           <button 
             onClick={() => setActiveQueue('REJECTED')}
-            className={`flex-1 py-3 text-center border-b-2 transition-colors ${activeQueue === 'REJECTED' ? 'border-red-500 text-red-500 bg-red-500/5' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
+            className={`flex-1 py-2 text-center border-b-2 transition-colors ${activeQueue === 'REJECTED' ? 'border-red-500 text-red-500 bg-red-500/5' : 'border-transparent text-zinc-400 hover:text-zinc-200'}`}
           >
             Rejected ({getCount('REJECTED')})
           </button>
@@ -127,7 +136,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
             <div 
               key={payment.id} 
               onClick={() => setSelectedPayment(payment)}
-              className={`p-4 cursor-pointer transition-colors ${selectedPayment?.id === payment.id ? 'bg-zinc-850 border-l-2 border-blue-500' : 'hover:bg-zinc-900/50 border-l-2 border-transparent'}`}
+              className={`p-3 cursor-pointer transition-colors ${selectedPayment?.id === payment.id ? 'bg-zinc-850 border-l-2 border-blue-500' : 'hover:bg-zinc-900/50 border-l-2 border-transparent'}`}
             >
               <div className="flex justify-between items-start mb-1">
                 <span className="font-semibold text-zinc-100">₹{parseFloat(payment.amount || '0').toFixed(2)}</span>
@@ -152,7 +161,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
         {selectedPayment ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+            <div className="p-3 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-100">Review Payment</h2>
                 <p className="text-xs text-zinc-400">Order: {selectedPayment.businessId || selectedPayment.orderId.slice(0,8)}</p>
@@ -180,7 +189,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
             {/* Content Split */}
             <div className="flex-1 flex overflow-hidden">
               {/* Image Pane */}
-              <div className="w-1/2 p-6 flex flex-col items-center justify-center bg-black/40 border-r border-zinc-800">
+              <div className="w-1/2 p-4 flex flex-col items-center justify-center bg-black/40 border-r border-zinc-800">
                 {selectedPayment.screenshotUrl ? (
                   <div className="relative w-full h-full flex flex-col items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -201,15 +210,15 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
               </div>
 
               {/* Data Pane */}
-              <div className="w-1/2 p-6 overflow-y-auto space-y-6">
+              <div className="w-1/2 p-4 overflow-y-auto space-y-4">
                 <div>
                   <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Claimed Details</h3>
                   <div className="space-y-4">
-                    <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+                    <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-3">
                       <div className="text-xs text-zinc-400 mb-1">Amount</div>
                       <div className="text-2xl font-bold text-zinc-100">₹{parseFloat(selectedPayment.amount || '0').toFixed(2)}</div>
                     </div>
-                    <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4">
+                    <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-3">
                       <div className="text-xs text-zinc-400 mb-1">UTR / Transaction ID</div>
                       <div className="text-lg font-mono text-zinc-200">{selectedPayment.utr || 'Not Provided'}</div>
                     </div>
@@ -218,7 +227,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
 
                 <div>
                   <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Customer Context</h3>
-                  <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 space-y-3 text-sm">
+                  <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-3 space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Name</span>
                       <span className="font-medium text-zinc-200">{selectedPayment.customerName || 'Unknown'}</span>

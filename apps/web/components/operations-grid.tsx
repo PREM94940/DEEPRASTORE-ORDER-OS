@@ -33,7 +33,7 @@ const columns: ColumnDef<OrderRow>[] = [
     cell: ({ row }) => {
       const url = row.getValue("primaryImageUrl") as string;
       return (
-        <div className="h-10 w-10 rounded-md bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
+        <div className="h-8 w-8 rounded-md bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="Product" className="h-full w-full object-cover" />
@@ -48,7 +48,7 @@ const columns: ColumnDef<OrderRow>[] = [
     accessorKey: "businessId",
     header: "Order ID",
     cell: ({ row }) => (
-      <div className="font-mono text-sm">{row.getValue("businessId") || row.original.id.slice(0, 8)}</div>
+      <div className="font-mono text-xs">{row.getValue("businessId") || row.original.id.slice(0, 8)}</div>
     ),
   },
   {
@@ -56,8 +56,8 @@ const columns: ColumnDef<OrderRow>[] = [
     header: "Customer",
     cell: ({ row }) => (
       <div className="flex flex-col">
-        <span className="font-medium text-zinc-100">{row.original.customerName || 'Unknown'}</span>
-        <span className="text-xs text-zinc-400">{row.original.customerPhone}</span>
+        <span className="font-medium text-zinc-100 text-sm">{row.original.customerName || 'Unknown'}</span>
+        <span className="text-[10px] text-zinc-400">{row.original.customerPhone}</span>
       </div>
     ),
   },
@@ -67,7 +67,7 @@ const columns: ColumnDef<OrderRow>[] = [
     cell: ({ row }) => {
       const cat = row.getValue("orderCategory") as string;
       return (
-        <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-zinc-800 text-zinc-300">
+        <div className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-300">
           {cat}
         </div>
       );
@@ -89,7 +89,7 @@ const columns: ColumnDef<OrderRow>[] = [
       else if (status === 'CANCELLED') color = "bg-rose-950/40 text-rose-400 border border-rose-900/30";
       
       return (
-        <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${color}`}>
+        <div className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide ${color}`}>
           {status}
         </div>
       );
@@ -105,7 +105,7 @@ const columns: ColumnDef<OrderRow>[] = [
       const color = getFinancialStatusColor(fStatus);
       
       return (
-        <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wide ${color}`}>
+        <div className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${color}`}>
           {label}
         </div>
       );
@@ -134,11 +134,20 @@ type TabType = 'Drafts' | 'Pending Verification' | 'Active Production' | 'Ready 
 export function OperationsGrid({ initialData, defaultTab = 'Active Production' }: { initialData: OrderRow[]; defaultTab?: TabType }) {
   const [selectedOrder, setSelectedOrder] = React.useState<OrderRow | null>(null);
   const [activeTab, setActiveTab] = React.useState<TabType>(defaultTab);
- 
+  
+  const [optimisticData, addOptimisticOrder] = React.useOptimistic(
+    initialData,
+    (state: OrderRow[], updatedOrder: Partial<OrderRow>) => {
+      return state.map(order => 
+        order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order
+      );
+    }
+  );
+
   // Compute tab counts
   const tabCounts = React.useMemo(() => {
     const counts = { 'Drafts': 0, 'Pending Verification': 0, 'Active Production': 0, 'Ready & Packing': 0, 'Completed': 0 };
-    initialData.forEach(o => {
+    optimisticData.forEach(o => {
       const s = o.status;
       if (s === 'DRAFT') counts['Drafts']++;
       else if (s === 'PENDING_VERIFICATION' || s === 'PAYMENT_REJECTED') counts['Pending Verification']++;
@@ -151,7 +160,7 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
  
   // Filter based on active tab
   const filteredData = React.useMemo(() => {
-    return initialData.filter(o => {
+    return optimisticData.filter(o => {
       const s = o.status;
       if (activeTab === 'Drafts') return s === 'DRAFT';
       if (activeTab === 'Pending Verification') return s === 'PENDING_VERIFICATION' || s === 'PAYMENT_REJECTED';
@@ -187,12 +196,12 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-3 border-b-2 text-center transition-colors whitespace-nowrap ${
+                className={`px-3 py-2 border-b-2 text-center transition-colors whitespace-nowrap text-xs ${
                   isActive ? activeColor : 'border-transparent text-zinc-500 hover:text-zinc-300'
                 }`}
               >
                 {tab} 
-                <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] ${isActive ? 'bg-zinc-800 text-zinc-200' : 'bg-zinc-900 text-zinc-500'}`}>
+                <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] ${isActive ? 'bg-zinc-800 text-zinc-200' : 'bg-zinc-900 text-zinc-500'}`}>
                   {count}
                 </span>
               </button>
@@ -204,11 +213,11 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
         <div className="rounded-md border border-zinc-800 bg-zinc-950">
           <div className="overflow-auto max-h-[calc(100vh-180px)]">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-zinc-900 text-zinc-400 sticky top-0 z-10 shadow-[0_1px_0_0_#27272a]">
+              <thead className="text-[10px] tracking-wider uppercase bg-zinc-900 text-zinc-400 sticky top-0 z-10 shadow-[0_1px_0_0_#27272a]">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
-                      <th key={header.id} className="px-4 py-3 font-medium whitespace-nowrap">
+                      <th key={header.id} className="px-3 py-2 font-medium whitespace-nowrap">
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -229,7 +238,7 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
                       className="hover:bg-zinc-900/50 transition-colors cursor-pointer"
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-4 py-3 whitespace-nowrap">
+                        <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
@@ -252,6 +261,7 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
         order={selectedOrder} 
         isOpen={!!selectedOrder} 
         onClose={() => setSelectedOrder(null)} 
+        onOptimisticUpdate={addOptimisticOrder}
       />
     </>
   );

@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { createUnifiedOrderAction, updateEnquiryStatusAction, addEnquiryCommentAction, getEnquiryCommentsAction } from '@/app/(staff)/actions/order-desk';
 import { uploadFilesToSupabase } from '@/lib/upload';
+import { useRouter } from 'next/navigation';
 
 export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     enquiryId: initialEnquiry?.id || '',
     name: initialEnquiry?.customerName || '',
@@ -178,7 +180,7 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
 
       if (res.success) {
         alert('Enquiry request updated successfully!');
-        window.location.reload();
+        router.refresh();
       } else {
         alert(res.error || 'Failed to update request');
       }
@@ -289,7 +291,10 @@ Thank you for shopping with us!`;
           Copy to WhatsApp
         </button>
         <button 
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            setSuccessReceipt(null);
+            router.refresh();
+          }}
           className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-lg mt-2"
         >
           New Order

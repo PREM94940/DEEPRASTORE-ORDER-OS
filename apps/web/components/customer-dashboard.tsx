@@ -5,6 +5,7 @@ import { logoutCustomer } from '@/app/(customer)/actions/customer-auth';
 import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from '@/lib/financials';
 import { submitCustomerResponseAction } from '@/app/(staff)/actions/order-desk';
 import { uploadFilesToSupabase } from '@/lib/upload';
+import { useRouter } from 'next/navigation';
 
 type Order = any;
 type Enquiry = any;
@@ -22,6 +23,7 @@ export function CustomerDashboard({
   phone = '', 
   isMagicLink = false 
 }: CustomerDashboardProps) {
+  const router = useRouter();
   // Select initial item: Orders take precedence, then enquiries
   const hasOrders = orders.length > 0;
   const hasEnquiries = enquiries.length > 0;
@@ -54,7 +56,7 @@ export function CustomerDashboard({
       if (res.success) {
         alert('Response submitted successfully!');
         setResponseMode('NONE');
-        window.location.reload();
+        router.refresh();
       } else {
         alert(res.error || 'Failed to submit response');
       }

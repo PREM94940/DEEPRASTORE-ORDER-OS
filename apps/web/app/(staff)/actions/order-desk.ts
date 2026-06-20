@@ -396,9 +396,9 @@ export async function createUnifiedOrderAction(data: any) {
     });
     
     if (orderResult) {
-      await notifyOrderCreated(orderResult.customerPhone, orderResult.id, Number(orderResult.totalAmount), Number(orderResult.advanceAmount));
+      notifyOrderCreated(orderResult.customerPhone, orderResult.id, Number(orderResult.totalAmount), Number(orderResult.advanceAmount)).catch(console.error);
       if (paymentAmount > 0) {
-        await notifyPaymentReceived(orderResult.customerPhone, orderResult.id, paymentAmount);
+        notifyPaymentReceived(orderResult.customerPhone, orderResult.id, paymentAmount).catch(console.error);
       }
     }
 

@@ -5,7 +5,7 @@ import { Search, Loader2 } from "lucide-react";
 import { Customer360Drawer } from "./customer-360-drawer";
 import { useCustomer360Listener } from "@/hooks/useCustomer360";
 
-import { getCustomerProfileAction } from "@/app/(staff)/actions/customer";
+import { getCustomerProfileAction, globalSearchAction } from "@/app/(staff)/actions/customer";
 
 export function GlobalSearch() {
   const [query, setQuery] = React.useState("");
@@ -36,14 +36,16 @@ export function GlobalSearch() {
     
     setLoading(true);
     
-    // Attempt to load the customer payload immediately
-    const res = await getCustomerProfileAction(query);
-    if (res.success && res.payload) {
-      setActivePayload(res.payload);
-      setSelectedCustomerPhone(query);
+    // Attempt to search globally (Phone, Name, Order ID, UTR)
+    const res = await globalSearchAction(query);
+    if (res.success && res.phone) {
+      setSelectedCustomerPhone(res.phone);
     } else {
       // If not found, you could show an error or open drawer empty for new customer creation
-      setSelectedCustomerPhone(query);
+      // For now, if it is a number, we just assume it's a new phone
+      const digits = query.replace(/\D/g, '');
+      if (digits.length >= 10) setSelectedCustomerPhone(query);
+      else alert("Customer or Order not found.");
     }
     
     setLoading(false);

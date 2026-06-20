@@ -27,7 +27,7 @@ export async function moveOrderAction(
     );
     
     if (newStatus === 'READY_TO_SHIP') {
-      await notifyOrderReady('CUSTOMER_PHONE', orderId);
+      notifyOrderReady('CUSTOMER_PHONE', orderId).catch(console.error);
     }
     
     revalidatePath('/');
@@ -83,8 +83,7 @@ export async function dispatchOrderAction(
       staffId,
       { courierName, trackingId, dispatchDate: new Date() }
     );
-
-    await notifyOrderDispatched('CUSTOMER_PHONE', orderId, courierName, trackingId);
+    notifyOrderDispatched('CUSTOMER_PHONE', orderId, courierName, trackingId).catch(console.error);
     
     revalidatePath('/');
     revalidatePath('/production');
@@ -121,8 +120,7 @@ export async function createOrderAction(data: {
     if (data.advanceAmount > 0) {
       await orderRepo.addPayment(null, tenantId, order.id, data.advanceAmount, staffId, 'ADVANCE_PAYMENT');
     }
-    
-    await notifyOrderCreated(data.customerPhone, order.id, data.totalAmount, data.advanceAmount);
+    notifyOrderCreated(data.customerPhone, order.id, data.totalAmount, data.advanceAmount).catch(console.error);
     
     revalidatePath('/');
     revalidatePath('/production');
@@ -146,9 +144,8 @@ export async function addPaymentAction(
       await orderRepo.addPayment(tx, tenantId, orderId, amount, staffId, utr);
       await orderRepo.updatePaymentUTR(tx, tenantId, orderId, utr);
     });
+    notifyPaymentReceived('CUSTOMER_PHONE', orderId, amount).catch(console.error);
     
-    await notifyPaymentReceived('CUSTOMER_PHONE', orderId, amount);
-
     revalidatePath('/');
     revalidatePath('/production');
     revalidatePath('/dispatch');

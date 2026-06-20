@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck } from "lucide-react";
+import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck, AlertTriangle } from "lucide-react";
 import { moveOrderAction, moveDispatchOrderAction, dispatchOrderAction } from "@/app/(staff)/actions/command-center";
 import { useCustomer360 } from "@/hooks/useCustomer360";
 import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
 import { checkIsAdminAction, deleteOrderAction } from "@/app/(staff)/actions/admin";
+import { useRouter } from "next/navigation";
+import { ExceptionDrawer } from "./exception-drawer";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   'DRAFT': ['PENDING_VERIFICATION', 'CANCELLED'],
@@ -26,25 +28,30 @@ export function OrderDrawer({
   order,
   isOpen,
   onClose,
+  onOptimisticUpdate,
 }: {
   order: any | null;
   isOpen: boolean;
   onClose: () => void;
+  onOptimisticUpdate?: (update: any) => void;
 }) {
   const { openCustomer360 } = useCustomer360();
   const [transitioning, setTransitioning] = React.useState(false);
   const [showDispatchForm, setShowDispatchForm] = React.useState(false);
   const [courierName, setCourierName] = React.useState("");
   const [trackingId, setTrackingId] = React.useState("");
+  const router = useRouter();
 
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [showExceptionDrawer, setShowExceptionDrawer] = React.useState(false);
 
   React.useEffect(() => {
     setShowDispatchForm(false);
     setCourierName("");
     setTrackingId("");
     setShowDeleteConfirm(false);
+    setShowExceptionDrawer(false);
 
     checkIsAdminAction().then(res => {
       if (res.success && res.isAdmin) {
@@ -112,8 +119,10 @@ export function OrderDrawer({
       }
 
       if (res.success) {
-        alert(`Status updated to ${newStatus}`);
-        window.location.reload();
+        if (onOptimisticUpdate) onOptimisticUpdate({ id: order.id, status: newStatus });
+        React.startTransition(() => {
+          router.refresh();
+        });
       } else {
         alert(`Failed to update status: ${res.error}`);
       }
@@ -141,8 +150,10 @@ export function OrderDrawer({
     try {
       const res = await dispatchOrderAction(order.id, courierName, trackingId);
       if (res.success) {
-        alert("Order dispatched successfully!");
-        window.location.reload();
+        if (onOptimisticUpdate) onOptimisticUpdate({ id: order.id, status: 'DISPATCHED' });
+        React.startTransition(() => {
+          router.refresh();
+        });
       } else {
         alert(`Failed to dispatch: ${res.error}`);
       }
@@ -310,6 +321,17 @@ export function OrderDrawer({
               ) : (
                 <p className="text-xs text-zinc-500 italic">No further status transitions available.</p>
               )}
+              
+              <div className="pt-3 border-t border-zinc-800/80">
+                <button
+                  type="button"
+                  onClick={() => setShowExceptionDrawer(true)}
+                  className="w-full py-2 rounded-md bg-amber-950/20 text-amber-500 hover:bg-amber-950/40 transition-colors border border-amber-900/30 font-semibold flex items-center justify-center gap-2 text-sm"
+                >
+                  <AlertTriangle size={16} />
+                  Raise Exception
+                </button>
+              </div>
             </div>
           </div>
 
@@ -405,6 +427,14 @@ export function OrderDrawer({
           </div>
         </div>
       )}
+
+      {/* Nested Exception Drawer */}
+      <ExceptionDrawer 
+        order={order}
+        isOpen={showExceptionDrawer}
+        onClose={() => setShowExceptionDrawer(false)}
+        onOptimisticUpdate={onOptimisticUpdate}
+      />
     </>
   );
 }

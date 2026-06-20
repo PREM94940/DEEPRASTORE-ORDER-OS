@@ -163,3 +163,47 @@ export async function getCustomerProfileAction(phone: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function globalSearchAction(query: string) {
+  try {
+    await requireStaffAuth();
+    if (!query) return { success: false, error: 'Empty query' };
+    
+    const normalizedPhone = normalizePhone(query);
+    if (normalizedPhone.length === 10) {
+      const [c] = await db.select().from(customers).where(eq(customers.phone, normalizedPhone));
+      if (c) return { success: true, phone: normalizedPhone };
+      // Fallback: order with that phone even if no customer record yet
+      const [o] = await db.select().from(orders).where(eq(orders.customerPhone, normalizedPhone)).limit(1);
+      if (o) return { success: true, phone: normalizedPhone };
+    }
+    
+    const qLower = query.toLowerCase();
+    
+    // Search Orders (Order ID, Shopify Number, Name)
+    const [ord] = await db.select().from(orders).where(
+      sql`LOWER(${orders.businessId}) LIKE ${'%' + qLower + '%'} OR LOWER(${orders.customerName}) LIKE ${'%' + qLower + '%'}`
+    ).limit(1);
+    if (ord && ord.customerPhone) return { success: true, phone: ord.customerPhone };
+    
+    // Search Payments (UTR)
+    const [pay] = await db.select().from(payments).where(
+      sql`LOWER(${payments.utr}) LIKE ${'%' + qLower + '%'}`
+    ).limit(1);
+    
+    if (pay) {
+      const [payOrd] = await db.select().from(orders).where(eq(orders.id, pay.orderId));
+      if (payOrd && payOrd.customerPhone) return { success: true, phone: payOrd.customerPhone };
+    }
+    
+    // Search Customers (Name)
+    const [cust] = await db.select().from(customers).where(
+      sql`LOWER(${customers.name}) LIKE ${'%' + qLower + '%'}`
+    ).limit(1);
+    if (cust && cust.phone) return { success: true, phone: cust.phone };
+
+    return { success: false, error: 'Not found' };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

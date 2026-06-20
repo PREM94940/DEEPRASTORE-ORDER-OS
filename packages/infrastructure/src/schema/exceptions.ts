@@ -7,8 +7,14 @@ export const exceptions = pgTable('exceptions', {
   businessId: varchar('business_id', { length: 50 }).notNull().unique(), // e.g. EXC-2026-0001
   orderId: uuid('order_id').references(() => orders.id).notNull(),
   
-  type: varchar('type', { length: 50 }).notNull(), // "MISSING_MEASUREMENT", "PAYMENT_FAILED", "MATERIAL_SHORTAGE", "QUALITY_FAIL"
-  severity: varchar('severity', { length: 20 }).default('MEDIUM').notNull(), // "LOW", "MEDIUM", "HIGH", "CRITICAL"
+  // WhatsApp Snapshot
+  customerName: varchar('customer_name', { length: 255 }),
+  customerPhone: varchar('customer_phone', { length: 50 }),
+  orderStage: varchar('order_stage', { length: 50 }),
+  photoUrl: text('photo_url'),
+  
+  type: varchar('type', { length: 50 }).notNull(), // "MISSING_MEASUREMENT", "PAYMENT_FAILED", "MATERIAL_SHORTAGE", "QUALITY_FAIL", "FOUNDER_APPROVAL"
+  severity: varchar('severity', { length: 20 }).default('NORMAL').notNull(), // "NORMAL", "URGENT", "CRITICAL"
   status: varchar('status', { length: 20 }).default('OPEN').notNull(), // "OPEN", "IN_PROGRESS", "RESOLVED"
   
   description: text('description').notNull(),
