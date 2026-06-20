@@ -1,6 +1,6 @@
 "use client";
 import React from 'react';
-import { Activity, AlertTriangle, CheckCircle, Clock, DollarSign, Package, User, PlusCircle, Search } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, DollarSign, Package, User, PlusCircle, Search } from 'lucide-react';
 import Link from 'next/link';
 
 function MetricCard({ title, value, icon, desc, trend, isWarning, isCritical, isSuccess }: any) {
@@ -44,23 +44,6 @@ function ActionItem({ title, description, action, link, icon, timeAgo }: any) {
   );
 }
 
-function FeedItem({ title, time, desc }: any) {
-  return (
-    <div className="relative pl-6 md:pl-0">
-      <div className="md:hidden absolute left-0 top-1.5 w-2 h-2 rounded-full bg-zinc-600 ring-4 ring-zinc-900"></div>
-      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1.5 w-2 h-2 rounded-full bg-zinc-600 ring-4 ring-zinc-900"></div>
-      <div className="md:flex md:justify-between md:items-start md:gap-8">
-        <div className="md:w-1/2 md:text-right md:pr-8">
-          <div className="text-[10px] font-medium text-zinc-500">{time}</div>
-        </div>
-        <div className="md:w-1/2 md:pl-8 mt-1 md:mt-0">
-          <div className="text-sm font-medium text-zinc-300">{title}</div>
-          <div className="text-xs text-zinc-500 mt-0.5">{desc}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function DashboardClient({ metrics }: { metrics: any }) {
   const today = metrics.today;
@@ -217,21 +200,6 @@ export default function DashboardClient({ metrics }: { metrics: any }) {
           </div>
         </section>
 
-        {/* LIVE FEED */}
-        <section>
-          <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-emerald-500" /> Live Feed
-          </h2>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-sm max-h-[300px] overflow-y-auto">
-            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-1 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-zinc-800/50">
-              {/* Fake Feed Items (since real-time pubsub isn't implemented yet, but keeping UI) */}
-              <FeedItem title="Payment Verified" time="10 mins ago" desc="Order #DP-1029 verified by Admin." />
-              <FeedItem title="Order Dispatched" time="45 mins ago" desc="Order #DP-1021 dispatched via BlueDart." />
-              <FeedItem title="New Form Submitted" time="2 hours ago" desc="Ananya Sharma started an enquiry." />
-              <FeedItem title="Production Updated" time="3 hours ago" desc="Order #DP-1025 moved to Stitching." />
-            </div>
-          </div>
-        </section>
 
       </div>
     </div>
