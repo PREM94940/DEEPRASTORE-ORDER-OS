@@ -46,6 +46,18 @@ export function ProductionBoard({ initialOrders }: { initialOrders: Order[] }) {
   const qcOrders = orders.filter(o => o.status === "QC");
   const readyOrders = orders.filter(o => o.status === "READY_TO_SHIP");
 
+  const totalActive = cuttingOrders.length + stitchingOrders.length + qcOrders.length + readyOrders.length;
+
+  if (totalActive === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] border border-dashed border-zinc-800 rounded-lg text-zinc-500 bg-zinc-900/20">
+        <Scissors className="w-8 h-8 mb-3 text-zinc-700" />
+        <h3 className="text-sm font-semibold text-zinc-400">No Active Production Orders</h3>
+        <p className="text-xs mt-1">There are currently no orders in cutting, stitching, QC, or ready to ship.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-full overflow-hidden pb-4">
       

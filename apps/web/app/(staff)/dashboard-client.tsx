@@ -3,21 +3,22 @@ import React from 'react';
 import { Activity, AlertTriangle, CheckCircle, Clock, DollarSign, Package, User, PlusCircle, Search } from 'lucide-react';
 import Link from 'next/link';
 
-function MetricCard({ title, value, icon, trend, isWarning, isCritical, isSuccess }: any) {
+function MetricCard({ title, value, icon, desc, trend, isWarning, isCritical, isSuccess }: any) {
   return (
-    <div className={`p-4 rounded-xl border bg-zinc-950 flex flex-col justify-between
+    <div className={`p-3 rounded-xl border bg-zinc-950 flex flex-col justify-between
       ${isCritical ? 'border-red-900/50 bg-red-950/10' : 
         isWarning ? 'border-amber-900/50 bg-amber-950/10' : 
         isSuccess ? 'border-emerald-900/50 bg-emerald-950/10' : 'border-zinc-800'}`}
     >
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="text-xs font-medium text-zinc-400">{title}</h3>
+      <div className="flex justify-between items-start mb-1">
+        <h3 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">{title}</h3>
         {icon}
       </div>
-      <div className="flex items-baseline gap-2">
-        <span className={`text-2xl font-bold ${isCritical ? 'text-red-500' : isWarning ? 'text-amber-500' : isSuccess ? 'text-emerald-500' : 'text-zinc-100'}`}>
+      <div>
+        <span className={`text-xl font-bold ${isCritical ? 'text-red-500' : isWarning ? 'text-amber-500' : isSuccess ? 'text-emerald-500' : 'text-zinc-100'}`}>
           {value}
         </span>
+        {desc && <p className="text-[10px] text-zinc-500 mt-1 leading-tight">{desc}</p>}
       </div>
     </div>
   );
@@ -81,11 +82,11 @@ export default function DashboardClient({ metrics }: { metrics: any }) {
         <section>
           <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Today</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <MetricCard title="Orders" value={today?.todaysOrders || 0} icon={<Package className="w-4 h-4 text-blue-400" />} />
-            <MetricCard title="Revenue" value={`₹${(today?.todaysRevenue || 0).toLocaleString()}`} icon={<DollarSign className="w-4 h-4 text-emerald-400" />} />
-            <MetricCard title="Pending Payments" value={today?.pendingPayments || 0} icon={<Clock className="w-4 h-4 text-amber-400" />} isWarning={(today?.pendingPayments || 0) > 0} />
-            <MetricCard title="Ready Dispatch" value={today?.readyToDispatch || 0} icon={<CheckCircle className="w-4 h-4 text-emerald-400" />} isSuccess={(today?.readyToDispatch || 0) > 0} />
-            <MetricCard title="Founder Overrides" value={today?.founderInterventions || 0} icon={<AlertTriangle className="w-4 h-4 text-red-400" />} isCritical={(today?.founderInterventions || 0) > 0} />
+            <MetricCard title="Orders" value={today?.todaysOrders || 0} desc="Intake forms converted today" icon={<Package className="w-4 h-4 text-blue-400" />} />
+            <MetricCard title="Revenue" value={`₹${(today?.todaysRevenue || 0).toLocaleString()}`} desc="Cleared funds today" icon={<DollarSign className="w-4 h-4 text-emerald-400" />} />
+            <MetricCard title="Pending Payments" value={today?.pendingPayments || 0} desc="Waiting for your verification" icon={<Clock className="w-4 h-4 text-amber-400" />} isWarning={(today?.pendingPayments || 0) > 0} />
+            <MetricCard title="Ready Dispatch" value={today?.readyToDispatch || 0} desc="Packed and waiting for courier" icon={<CheckCircle className="w-4 h-4 text-emerald-400" />} isSuccess={(today?.readyToDispatch || 0) > 0} />
+            <MetricCard title="Exceptions" value={today?.founderInterventions || 0} desc="Blocked items needing review" icon={<AlertTriangle className="w-4 h-4 text-red-400" />} isCritical={(today?.founderInterventions || 0) > 0} />
           </div>
         </section>
 

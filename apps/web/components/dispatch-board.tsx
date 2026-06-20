@@ -72,6 +72,18 @@ export function DispatchBoard({ initialOrders }: { initialOrders: Order[] }) {
   const dispatchedOrders = orders.filter(o => o.status === "DISPATCHED");
   const deliveredOrders = orders.filter(o => o.status === "DELIVERED");
 
+  const totalActive = readyOrders.length + dispatchedOrders.length + deliveredOrders.length;
+
+  if (totalActive === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] border border-dashed border-zinc-800 rounded-lg text-zinc-500 bg-zinc-900/20">
+        <Package className="w-8 h-8 mb-3 text-zinc-700" />
+        <h3 className="text-sm font-semibold text-zinc-400">No Active Dispatch Orders</h3>
+        <p className="text-xs mt-1">There are currently no orders in ready, dispatched, or delivered states.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full overflow-hidden pb-4 text-sm">
       
