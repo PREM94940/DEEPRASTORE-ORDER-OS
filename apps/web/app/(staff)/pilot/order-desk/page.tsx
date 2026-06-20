@@ -87,7 +87,7 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
           )}
         </div>
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          <UnifiedOrderDesk initialEnquiry={selectedEnquiry} />
+          <UnifiedOrderDesk key={selectedEnquiry?.id || 'new'} initialEnquiry={selectedEnquiry} />
         </div>
       </div>
     </div>
