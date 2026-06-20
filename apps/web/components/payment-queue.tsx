@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle, XCircle, Clock, Search, Image as ImageIcon, X } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Search, Image as ImageIcon, X, ArrowLeft } from "lucide-react";
 import { approvePaymentAction, rejectPaymentAction } from "@/app/(staff)/actions/payments";
 import { useRouter } from "next/navigation";
 
@@ -95,7 +95,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
     <div className="flex flex-1 h-full gap-6 overflow-hidden text-sm text-zinc-300">
       
       {/* Left List: Queue */}
-      <div className="w-1/3 flex flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden">
+      <div className={`w-full md:w-1/3 flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden ${selectedPayment ? 'hidden md:flex' : 'flex'}`}>
         {/* Search */}
         <div className="p-3 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-2">
           <Search size={14} className="text-zinc-500" />
@@ -157,14 +157,22 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
       </div>
 
       {/* Right Pane: Verification Details */}
-      <div className="flex-1 flex flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden relative">
+      <div className={`flex-1 flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden relative ${!selectedPayment ? 'hidden md:flex' : 'flex'}`}>
         {selectedPayment ? (
           <>
             {/* Header */}
             <div className="p-3 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
-              <div>
-                <h2 className="text-lg font-semibold text-zinc-100">Review Payment</h2>
-                <p className="text-xs text-zinc-400">Order: {selectedPayment.businessId || selectedPayment.orderId.slice(0,8)}</p>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setSelectedPayment(null)}
+                  className="md:hidden p-1.5 -ml-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div>
+                  <h2 className="text-lg font-semibold text-zinc-100">Review Payment</h2>
+                  <p className="text-xs text-zinc-400">Order: {selectedPayment.businessId || selectedPayment.orderId.slice(0,8)}</p>
+                </div>
               </div>
               {selectedPayment.status === 'PENDING' && (
                 <div className="flex gap-2">
@@ -187,9 +195,9 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
             </div>
 
             {/* Content Split */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
               {/* Image Pane */}
-              <div className="w-1/2 p-4 flex flex-col items-center justify-center bg-black/40 border-r border-zinc-800">
+              <div className="w-full md:w-1/2 p-4 flex flex-col items-center justify-center bg-black/40 border-b md:border-b-0 md:border-r border-zinc-800 min-h-[300px] md:min-h-0">
                 {selectedPayment.screenshotUrl ? (
                   <div className="relative w-full h-full flex flex-col items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -210,7 +218,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
               </div>
 
               {/* Data Pane */}
-              <div className="w-1/2 p-4 overflow-y-auto space-y-4">
+              <div className="w-full md:w-1/2 p-4 md:overflow-y-auto space-y-4">
                 <div>
                   <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Claimed Details</h3>
                   <div className="space-y-4">

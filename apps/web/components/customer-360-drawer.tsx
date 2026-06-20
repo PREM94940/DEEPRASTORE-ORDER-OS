@@ -186,10 +186,10 @@ export function Customer360Drawer({
       />
       
       {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-[550px] bg-zinc-950 border-l border-zinc-800 shadow-2xl z-[70] transform transition-transform flex flex-col font-sans text-sm text-zinc-300">
+      <div className="fixed inset-y-0 right-0 w-full sm:w-[550px] bg-zinc-950 border-l border-zinc-800 shadow-2xl z-[70] transform transition-transform flex flex-col font-sans text-sm text-zinc-300">
         
         {/* Header - Customer Info */}
-        <div className="px-6 py-5 border-b border-zinc-800 bg-zinc-900/40 flex justify-between items-start">
+        <div className="px-4 py-3 sm:px-6 sm:py-5 border-b border-zinc-800 bg-zinc-900/40 flex justify-between items-start">
           <div className="space-y-3 w-full">
             <div className="flex justify-between items-center w-full">
               <div>
@@ -203,7 +203,7 @@ export function Customer360Drawer({
             </div>
 
             {/* Quick Actions */}
-            <div className="flex gap-2 pt-2 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex flex-wrap gap-2 pt-2 pb-1">
               <button onClick={() => setActiveModal('order')} className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold transition-colors shadow-sm">
                 <PlusCircle size={14} /> New Order
               </button>

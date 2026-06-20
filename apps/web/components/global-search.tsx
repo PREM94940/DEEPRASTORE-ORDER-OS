@@ -60,8 +60,8 @@ export function GlobalSearch() {
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-zinc-800 rounded-md leading-5 bg-zinc-900/50 text-zinc-300 placeholder-zinc-500 focus:outline-none focus:bg-zinc-900 focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700 sm:text-sm transition-colors"
-            placeholder="Search Phone, Business ID, UTR..."
+            className="block w-full pl-9 pr-3 py-1.5 md:py-2 border border-zinc-800/60 rounded-full md:rounded-md leading-5 bg-zinc-900/40 text-zinc-300 placeholder-zinc-500 focus:outline-none focus:bg-zinc-900 focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700 text-xs md:text-sm transition-colors"
+            placeholder="Search by: Phone, Order ID, UTR"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

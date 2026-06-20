@@ -209,8 +209,72 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
           })}
         </div>
 
-        {/* Table View */}
-        <div className="rounded-md border border-zinc-800 bg-zinc-950">
+        {/* Mobile View */}
+        <div className="md:hidden flex flex-col space-y-3 bg-zinc-950 rounded-md border border-zinc-800 max-h-[calc(100vh-180px)] overflow-y-auto p-2">
+          {filteredData.length > 0 ? (
+            filteredData.map((row) => {
+              const finStatus = getFinancialStatus(row);
+              return (
+                <div 
+                  key={row.id} 
+                  className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col gap-3 relative shadow-sm"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="font-mono text-xs text-zinc-400">
+                      {row.businessId || row.id.slice(0, 8)}
+                    </div>
+                    <div className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
+                      {row.status.replace(/_/g, ' ')}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold text-zinc-100 text-base">{row.customerName || 'Unknown'}</h3>
+                    <p className="text-zinc-500 text-xs font-mono">{row.customerPhone}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-end border-t border-zinc-800/60 pt-3">
+                    <div>
+                      <div className="text-lg font-bold text-zinc-200">
+                        ₹{parseFloat(row.totalAmount || '0').toFixed(2)}
+                      </div>
+                      <div className={`text-[10px] font-semibold tracking-wider uppercase mt-0.5 ${getFinancialStatusColor(finStatus)}`}>
+                        {getFinancialStatusLabel(finStatus)}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedOrder(row);
+                        }}
+                        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs font-semibold transition-colors border border-zinc-700"
+                      >
+                        View
+                      </button>
+                      <a 
+                        href={`https://wa.me/${(row.customerPhone || '').replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3 py-1.5 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 rounded text-xs font-semibold transition-colors border border-[#25D366]/20"
+                      >
+                        WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center text-zinc-500 py-8 text-sm">
+              No orders in this tab.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block rounded-md border border-zinc-800 bg-zinc-950">
           <div className="overflow-auto max-h-[calc(100vh-180px)]">
             <table className="w-full text-sm text-left">
               <thead className="text-[10px] tracking-wider uppercase bg-zinc-900 text-zinc-400 sticky top-0 z-10 shadow-[0_1px_0_0_#27272a]">
