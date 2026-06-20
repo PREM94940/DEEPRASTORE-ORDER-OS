@@ -85,6 +85,14 @@ export class OrderRepository implements IOrderRepository {
     return order;
   }
 
+  async updateOrderStatus(tx: any, tenantId: string, id: string, status: string): Promise<Order> {
+    const client = tx || db;
+    await client.update(orders).set({ status, updatedAt: new Date() }).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
+    const order = await this.getOrderById(tenantId, id);
+    if (!order) throw new Error('Order not found');
+    return order;
+  }
+
   async updatePaymentUTR(tx: any, tenantId: string, id: string, utrNumber: string): Promise<Order> {
     const client = tx || db;
     await client.update(orders).set({ 

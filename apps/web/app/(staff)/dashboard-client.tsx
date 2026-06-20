@@ -205,7 +205,7 @@ export default function DashboardClient({ metrics }: { metrics: any }) {
             </Link>
             <button className="flex items-center justify-center gap-2 p-3 bg-zinc-900 border border-zinc-800 rounded-lg hover:bg-zinc-800 transition-colors" onClick={() => {
               // Quick action search focus
-              document.querySelector('input[type="text"]')?.focus();
+              (document.querySelector('input[type="text"]') as HTMLElement)?.focus();
             }}>
               <Search className="w-4 h-4 text-zinc-400" />
               <span className="text-xs font-medium">Search Customer</span>

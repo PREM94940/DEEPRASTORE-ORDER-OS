@@ -13,7 +13,8 @@ const MOCK_TENANT_ID = '11111111-1111-1111-1111-111111111111';
 
 export async function raiseException({ orderId, type, severity, description, photoUrl }: { orderId: string, type: string, severity: string, description: string, photoUrl?: string }) {
   try {
-    const { email: staffId } = await requireStaffAuth();
+    const { staff } = await requireStaffAuth();
+    const staffId = staff.email;
 
     // Spam / Duplicate Check
     const existing = await db.select().from(exceptions).where(and(eq(exceptions.orderId, orderId), eq(exceptions.status, 'OPEN')));
@@ -66,7 +67,8 @@ export async function raiseException({ orderId, type, severity, description, pho
 
 export async function assignException({ exceptionId }: { exceptionId: string }) {
   try {
-    const { email: staffId } = await requireStaffAuth();
+    const { staff } = await requireStaffAuth();
+    const staffId = staff.email;
     const [exc] = await db.update(exceptions)
       .set({ status: 'IN_PROGRESS' })
       .where(eq(exceptions.id, exceptionId))
@@ -92,7 +94,9 @@ export async function assignException({ exceptionId }: { exceptionId: string }) 
 
 export async function resolveException({ exceptionId, resolution }: { exceptionId: string, resolution: string }) {
   try {
-    const { email: staffId, role } = await requireStaffAuth();
+    const { staff } = await requireStaffAuth();
+    const staffId = staff.email;
+    const role = staff.role;
 
     // Fetch exception to check type
     const [currentExc] = await db.select().from(exceptions).where(eq(exceptions.id, exceptionId));
