@@ -52,28 +52,27 @@ export async function deleteOrderAction(orderId: string) {
       return { success: false, error: 'Order not found.' };
     }
 
-    // 2. Perform Soft Delete (Cancel order & set isDeleted = true)
+    // 2. Transition status to CANCELLED using gatekeeper
+    const { OrderRepository } = await import('@deeprastore/infrastructure/src/repositories/OrderRepository');
+    const repo = new OrderRepository();
+    await repo.updateOrderProductionStatusWithAudit(
+      null,
+      tenantId,
+      orderId,
+      'CANCELLED',
+      'Order deleted by Admin',
+      adminSession.email
+    );
+
+    // 3. Perform Soft Delete metadata update (isDeleted)
     await db.update(orders)
       .set({
         isDeleted: true,
-        status: 'CANCELLED',
         updatedAt: new Date(),
         deletedAt: new Date(),
         deletedBy: adminSession.email
       })
       .where(and(eq(orders.id, orderId), eq(orders.tenantId, tenantId)));
-
-    // 3. Write to system audit logs table
-    await db.insert(auditLogs).values({
-      id: uuidv4(),
-      tableName: 'orders',
-      recordId: orderId,
-      action: 'DELETE_ORDER',
-      oldData: { status: order.status },
-      newData: { status: 'CANCELLED', isDeleted: true, deletedBy: adminSession.email },
-      staffId: adminSession.email,
-      createdAt: new Date(),
-    });
 
     revalidatePath('/');
     revalidatePath('/production');

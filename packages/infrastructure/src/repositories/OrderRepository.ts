@@ -68,7 +68,6 @@ export class OrderRepository implements IOrderRepository {
       updatedAt: new Date()
     };
     
-    if (data.status !== undefined) updateData.status = data.status;
     if (data.expectedDeliveryDate !== undefined) updateData.expectedDeliveryDate = data.expectedDeliveryDate;
     if (data.notes !== undefined) updateData.notes = data.notes; 
     
@@ -81,14 +80,6 @@ export class OrderRepository implements IOrderRepository {
 
     await client.update(orders).set(updateData).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
     
-    const order = await this.getOrderById(tenantId, id);
-    if (!order) throw new Error('Order not found');
-    return order;
-  }
-
-  async updateOrderStatus(tx: any, tenantId: string, id: string, status: string): Promise<Order> {
-    const client = tx || db;
-    await client.update(orders).set({ status }).where(and(eq(orders.id, id), eq(orders.tenantId, tenantId)));
     const order = await this.getOrderById(tenantId, id);
     if (!order) throw new Error('Order not found');
     return order;

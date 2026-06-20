@@ -41,14 +41,19 @@ export async function transitionOrderStatus(orderId: string, currentStatus: Orde
     timestamp: new Date().toISOString()
   };
 
-  // Actually update the database
-  const { db } = await import('@deeprastore/infrastructure/src/db/client');
-  const { orders } = await import('@deeprastore/infrastructure/src/schema/order');
-  const { eq } = await import('drizzle-orm');
+  // Actually update the database through the gatekeeper
+  const { OrderRepository } = await import('@deeprastore/infrastructure/src/repositories/OrderRepository');
+  const repo = new OrderRepository();
+  const tenantId = '11111111-1111-1111-1111-111111111111'; // Single tenant
 
-  await db.update(orders)
-    .set({ productionStatus: newStatus.toUpperCase(), statusUpdatedAt: new Date() })
-    .where(eq(orders.id, orderId));
+  await repo.updateOrderProductionStatusWithAudit(
+    null,
+    tenantId,
+    orderId,
+    newStatus.toUpperCase(),
+    notes || 'Automated status transition',
+    'system_automation'
+  );
 
   await syncTimelineEvent(timelineEvent);
 

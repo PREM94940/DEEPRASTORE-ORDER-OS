@@ -37,7 +37,20 @@ export async function updateOrderDetailsAction(orderId: string, data: any) {
   const orderService = new OrderService();
   const tenantId = '11111111-1111-1111-1111-111111111111';
   try {
-    const updated = await orderService.updateOrderDetails(tenantId, orderId, data);
+    // Intercept status updates to force them through the gatekeeper
+    if (data.status) {
+      await orderService.updateOrderProductionStatus(tenantId, orderId, data.status);
+      delete data.status;
+    }
+    
+    // Only call updateOrderDetails if there are other details to update
+    let updated;
+    if (Object.keys(data).length > 0) {
+      updated = await orderService.updateOrderDetails(tenantId, orderId, data);
+    } else {
+      updated = await orderService.getOrder(tenantId, orderId);
+    }
+    
     return { success: true, order: updated };
   } catch (error: any) {
     console.error('Failed to update order:', error);
