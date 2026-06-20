@@ -78,15 +78,24 @@ export default function DashboardClient({ metrics }: { metrics: any }) {
 
       <div className="space-y-8">
         
-        {/* TODAY Section */}
+        {/* BUSINESS METRICS */}
         <section>
-          <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Today</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <MetricCard title="Orders" value={today?.todaysOrders || 0} desc="Intake forms converted today" icon={<Package className="w-4 h-4 text-blue-400" />} />
-            <MetricCard title="Revenue" value={`₹${(today?.todaysRevenue || 0).toLocaleString()}`} desc="Cleared funds today" icon={<DollarSign className="w-4 h-4 text-emerald-400" />} />
+          <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Business Overview</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <MetricCard title="Total Active Orders" value={today?.activeOrders || 0} desc="All-time active (excl. cancelled)" icon={<Package className="w-4 h-4 text-blue-400" />} />
+            <MetricCard title="Cancelled Orders" value={today?.cancelledOrders || 0} desc="Test and cancelled orders" icon={<Package className="w-4 h-4 text-zinc-500" />} />
+            <MetricCard title="Today's Orders" value={today?.todaysOrders || 0} desc="Intake forms converted today" icon={<Package className="w-4 h-4 text-emerald-400" />} />
+            <MetricCard title="Today's Revenue" value={`₹${(today?.todaysRevenue || 0).toLocaleString()}`} desc="Cleared funds from today" icon={<DollarSign className="w-4 h-4 text-emerald-400" />} />
+          </div>
+        </section>
+
+        {/* OPERATIONS PIPELINE */}
+        <section>
+          <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Operations Pipeline</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <MetricCard title="Pending Payments" value={today?.pendingPayments || 0} desc="Waiting for your verification" icon={<Clock className="w-4 h-4 text-amber-400" />} isWarning={(today?.pendingPayments || 0) > 0} />
             <MetricCard title="Ready Dispatch" value={today?.readyToDispatch || 0} desc="Packed and waiting for courier" icon={<CheckCircle className="w-4 h-4 text-emerald-400" />} isSuccess={(today?.readyToDispatch || 0) > 0} />
-            <MetricCard title="Exceptions" value={today?.founderInterventions || 0} desc="Blocked items needing review" icon={<AlertTriangle className="w-4 h-4 text-red-400" />} isCritical={(today?.founderInterventions || 0) > 0} />
+            <MetricCard title="Founder Overrides" value={today?.founderInterventions || 0} desc="System rules bypassed today" icon={<AlertTriangle className="w-4 h-4 text-red-400" />} isCritical={(today?.founderInterventions || 0) > 0} />
           </div>
         </section>
 

@@ -10,7 +10,7 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
     ? enquiries.find(e => e.id === resolvedSearchParams.enquiry)
     : null;
 
-  const isCreatingNew = resolvedSearchParams.new === 'true';
+  const isCreatingNew = resolvedSearchParams.new === 'true' || enquiries.length === 0;
   const showRightPanel = !!selectedEnquiry || isCreatingNew;
 
   return (

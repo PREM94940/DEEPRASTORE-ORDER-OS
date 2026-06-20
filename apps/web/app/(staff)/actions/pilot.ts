@@ -26,8 +26,10 @@ export async function getPilotMetrics() {
   const ordersResult = await safeQuery('orders-stats', () => db.execute(sql`
     SELECT 
       COUNT(*) as total,
-      SUM(CASE WHEN created_at >= CURRENT_DATE THEN 1 ELSE 0 END) as todays_orders,
-      SUM(CASE WHEN created_at >= CURRENT_DATE THEN total_amount ELSE 0 END) as todays_revenue,
+      SUM(CASE WHEN created_at >= CURRENT_DATE AND status != 'CANCELLED' THEN 1 ELSE 0 END) as todays_orders,
+      SUM(CASE WHEN created_at >= CURRENT_DATE AND status != 'CANCELLED' THEN total_amount ELSE 0 END) as todays_revenue,
+      SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled_orders,
+      SUM(CASE WHEN status != 'CANCELLED' THEN 1 ELSE 0 END) as active_total_orders,
       SUM(CASE WHEN payment_status = 'PENDING' OR payment_status = 'REJECTED' THEN 1 ELSE 0 END) as pending_payments,
       SUM(CASE WHEN status IN ('CUTTING', 'STITCHING', 'QC') AND expected_delivery_date < CURRENT_DATE THEN 1 ELSE 0 END) as production_delays,
       SUM(CASE WHEN status = 'READY_TO_SHIP' THEN 1 ELSE 0 END) as ready_to_dispatch,
@@ -78,6 +80,9 @@ export async function getPilotMetrics() {
     today: {
       todaysOrders: Number(oStats?.todays_orders || 0),
       todaysRevenue: Number(oStats?.todays_revenue || 0),
+      totalOrders: Number(oStats?.total || 0),
+      activeOrders: Number(oStats?.active_total_orders || 0),
+      cancelledOrders: Number(oStats?.cancelled_orders || 0),
       pendingPayments: Number(oStats?.pending_payments || 0),
       productionDelays: Number(oStats?.production_delays || 0),
       readyToDispatch: Number(oStats?.ready_to_dispatch || 0),
