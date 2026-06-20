@@ -62,6 +62,12 @@ export const orders = pgTable('orders', {
   deliveryProofUrl: varchar('delivery_proof_url', { length: 1024 }),
   notes: varchar('notes', { length: 2048 }),
 
+  // Advanced Pricing
+  basePrice: numeric('base_price', { precision: 10, scale: 2 }),
+  discountAmount: numeric('discount_amount', { precision: 10, scale: 2 }),
+  deliveryAmount: numeric('delivery_amount', { precision: 10, scale: 2 }),
+  deliveryType: varchar('delivery_type', { length: 50 }), // IN_STORE_PICKUP, LOCAL_INSTANT, STANDARD_PARCEL
+
   totalAmount: numeric('total_amount', { precision: 10, scale: 2 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -104,8 +110,11 @@ export const payments = pgTable('payments', {
   id: uuid('id').primaryKey().defaultRandom(),
   orderId: uuid('order_id').notNull().references(() => orders.id),
   amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }),
   utr: varchar('utr', { length: 255 }),
   screenshotUrl: varchar('screenshot_url', { length: 1024 }),
+  razorpayPaymentLinkId: varchar('razorpay_payment_link_id', { length: 255 }),
+  razorpayPaymentId: varchar('razorpay_payment_id', { length: 255 }),
   status: varchar('status', { length: 50 }).notNull().default('PENDING'),
   verifiedBy: varchar('verified_by', { length: 255 }),
   verifiedAt: timestamp('verified_at'),

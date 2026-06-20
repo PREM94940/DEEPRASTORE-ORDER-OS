@@ -51,6 +51,10 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
   const [isUpdatingRequest, setIsUpdatingRequest] = useState(false);
 
   // Quote states
+  const [basePrice, setBasePrice] = useState('');
+  const [discountAmount, setDiscountAmount] = useState('');
+  const [deliveryAmount, setDeliveryAmount] = useState('');
+  const [deliveryType, setDeliveryType] = useState('STANDARD_PARCEL');
   const [quoteAmount, setQuoteAmount] = useState('');
   const [requiredAdvance, setRequiredAdvance] = useState('');
   const [quoteNotes, setQuoteNotes] = useState('');
@@ -74,6 +78,10 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
       ]);
 
       // Sync quote values
+      setBasePrice(initialEnquiry.quote?.basePrice || '');
+      setDiscountAmount(initialEnquiry.quote?.discountAmount || '');
+      setDeliveryAmount(initialEnquiry.quote?.deliveryAmount || '');
+      setDeliveryType(initialEnquiry.quote?.deliveryType || 'STANDARD_PARCEL');
       setQuoteAmount(initialEnquiry.quote?.quoteAmount || '');
       setRequiredAdvance(initialEnquiry.quote?.requiredAdvance || '');
       setQuoteNotes(initialEnquiry.quote?.quoteNotes || '');
@@ -106,9 +114,25 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
         // Prefill totalAmount and advanceAmount with approved quote if available
         totalAmount: initialEnquiry.quote?.quoteAmount || '',
         advanceAmount: initialEnquiry.quote?.requiredAdvance || '',
+        basePrice: initialEnquiry.quote?.basePrice || '',
+        discountAmount: initialEnquiry.quote?.discountAmount || '',
+        deliveryAmount: initialEnquiry.quote?.deliveryAmount || '',
+        deliveryType: initialEnquiry.quote?.deliveryType || 'STANDARD_PARCEL',
       }));
     }
   }, [initialEnquiry]);
+
+  // Auto Calculate Quote Total
+  useEffect(() => {
+    // Only auto-calculate if basePrice is present (to avoid overwriting legacy simple quotes)
+    if (basePrice) {
+      const base = parseFloat(basePrice) || 0;
+      const discount = parseFloat(discountAmount) || 0;
+      const delivery = parseFloat(deliveryAmount) || 0;
+      const total = Math.max(0, base - discount + delivery);
+      setQuoteAmount(total.toString());
+    }
+  }, [basePrice, discountAmount, deliveryAmount]);
 
   // Auto Calculate Balance
   useEffect(() => {
@@ -142,6 +166,10 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
         quoteAmount ? {
           quoteAmount,
           requiredAdvance: requiredAdvance || '0',
+          basePrice: basePrice || undefined,
+          discountAmount: discountAmount || undefined,
+          deliveryAmount: deliveryAmount || undefined,
+          deliveryType: deliveryType || undefined,
           quoteNotes,
           invoiceUrl: currentInvoiceUrl || undefined,
           expiresAt: expiresAt || undefined,
@@ -388,25 +416,68 @@ Thank you for shopping with us!`;
             {(reviewStatus === 'PRICE_QUOTED' || reviewStatus === 'INVOICE_SENT' || reviewStatus === 'CHANGES_REQUESTED' || reviewStatus === 'QUOTE_EXPIRED' || quoteAmount) && (
               <div className="col-span-1 md:col-span-2 border-t border-white/10 pt-4 mt-2 space-y-4">
                 <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Quote & Invoice Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs text-white/50 block">Quoted Price (₹) *</label>
+                    <label className="text-xs text-white/50 block">Base Price (₹) *</label>
                     <input 
                       type="number" 
-                      placeholder="Total Quote Amount"
-                      value={quoteAmount}
-                      onChange={e => setQuoteAmount(e.target.value)}
+                      placeholder="e.g. 8500"
+                      value={basePrice}
+                      onChange={e => setBasePrice(e.target.value)}
                       className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-mono"
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-white/50 block">Discount (₹)</label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 500"
+                      value={discountAmount}
+                      onChange={e => setDiscountAmount(e.target.value)}
+                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-green-400 outline-none focus:border-green-500 font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-white/50 block">Delivery Fee (₹)</label>
+                    <input 
+                      type="number" 
+                      placeholder="e.g. 150"
+                      value={deliveryAmount}
+                      onChange={e => setDeliveryAmount(e.target.value)}
+                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-white/50 block">Final Quoted Price (₹)</label>
+                    <input 
+                      type="number" 
+                      placeholder="Auto Calculated"
+                      value={quoteAmount}
+                      readOnly={!!basePrice}
+                      onChange={e => !basePrice && setQuoteAmount(e.target.value)}
+                      className={`w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs font-mono font-bold ${basePrice ? 'text-blue-400 opacity-70 cursor-not-allowed' : 'text-white outline-none focus:border-blue-500'}`}
+                    />
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs text-white/50 block">Delivery Type</label>
+                    <select 
+                      value={deliveryType}
+                      onChange={e => setDeliveryType(e.target.value)}
+                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500"
+                    >
+                      <option value="IN_STORE_PICKUP">Pickup from Store</option>
+                      <option value="LOCAL_INSTANT">Rapido/Ola/Uber Delivery</option>
+                      <option value="STANDARD_PARCEL">DTDC / Delhivery / India Post</option>
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-white/50 block">Required Advance (₹)</label>
                     <input 
                       type="number" 
-                      placeholder="Required Deposit"
+                      placeholder="Manual Entry"
                       value={requiredAdvance}
                       onChange={e => setRequiredAdvance(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-mono"
+                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-emerald-400 outline-none focus:border-emerald-500 font-mono font-bold"
                     />
                   </div>
                   <div className="space-y-1.5">

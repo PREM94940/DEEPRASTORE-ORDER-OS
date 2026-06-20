@@ -66,6 +66,10 @@ export async function updateEnquiryStatusAction(
   quoteData?: {
     quoteAmount: string;
     requiredAdvance: string;
+    basePrice?: string;
+    discountAmount?: string;
+    deliveryAmount?: string;
+    deliveryType?: string;
     quoteNotes?: string;
     invoiceUrl?: string;
     expiresAt?: string;
@@ -96,12 +100,58 @@ export async function updateEnquiryStatusAction(
       const newVersion = existingQuotes.length > 0 ? existingQuotes[0].version + 1 : 1;
       const quoteId = uuidv4();
 
+      let paymentLinkUrl = null;
+
+      // Generate Razorpay Payment Link if credentials are set and advance is required
+      if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && Number(quoteData.requiredAdvance) > 0) {
+        try {
+          const Razorpay = require('razorpay');
+          const rzp = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+          });
+
+          // Razorpay expects amount in paise (multiply by 100)
+          const amountInPaise = Math.round(Number(quoteData.requiredAdvance) * 100);
+
+          const paymentLink = await rzp.paymentLink.create({
+            amount: amountInPaise,
+            currency: "INR",
+            accept_partial: false,
+            description: `Advance Payment for Request ${enqBefore?.enquiryNumber || 'N/A'}`,
+            customer: {
+              name: enqBefore?.customerName || "Customer",
+              contact: enqBefore?.customerPhone || "",
+              email: enqBefore?.email || ""
+            },
+            notify: {
+              sms: true,
+              email: true
+            },
+            reminder_enable: true,
+            reference_id: enquiryId,
+            callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/track/${enqBefore?.trackingToken}`,
+            callback_method: "get"
+          });
+
+          paymentLinkUrl = paymentLink.short_url;
+        } catch (rzpErr) {
+          console.error("Failed to generate Razorpay link:", rzpErr);
+          // Non-fatal, we just continue without a link
+        }
+      }
+
       await db.insert(enquiryQuotes).values({
         id: quoteId,
         enquiryId,
         version: newVersion,
         quoteAmount: quoteData.quoteAmount,
         requiredAdvance: quoteData.requiredAdvance || '0',
+        basePrice: quoteData.basePrice || null,
+        discountAmount: quoteData.discountAmount || null,
+        deliveryAmount: quoteData.deliveryAmount || null,
+        deliveryType: quoteData.deliveryType || null,
+        paymentLinkUrl: paymentLinkUrl,
         quoteNotes: quoteData.quoteNotes || null,
         invoiceUrl: quoteData.invoiceUrl || null,
         expiresAt: quoteData.expiresAt ? new Date(quoteData.expiresAt) : null,

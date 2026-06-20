@@ -34,6 +34,11 @@ export const enquiryQuotes = pgTable('enquiry_quotes', {
   version: integer('version').notNull(),
   quoteAmount: numeric('quote_amount', { precision: 10, scale: 2 }).notNull(),
   requiredAdvance: numeric('required_advance', { precision: 10, scale: 2 }).notNull(),
+  basePrice: numeric('base_price', { precision: 10, scale: 2 }),
+  discountAmount: numeric('discount_amount', { precision: 10, scale: 2 }),
+  deliveryAmount: numeric('delivery_amount', { precision: 10, scale: 2 }),
+  deliveryType: varchar('delivery_type', { length: 50 }), // IN_STORE_PICKUP, LOCAL_INSTANT, STANDARD_PARCEL
+  paymentLinkUrl: varchar('payment_link_url', { length: 1024 }),
   quoteNotes: varchar('quote_notes', { length: 2048 }),
   invoiceUrl: varchar('invoice_url', { length: 1024 }),
   expiresAt: timestamp('expires_at'),
