@@ -23,7 +23,7 @@ function MetricCard({ title, value, icon, trend, isWarning, isCritical, isSucces
   );
 }
 
-function ActionItem({ title, description, action, link, icon, timeAgo, isButton = false }: any) {
+function ActionItem({ title, description, action, link, icon, timeAgo }: any) {
   return (
     <div className="p-4 flex items-start gap-4">
       <div className="mt-1 bg-zinc-950 p-2 rounded-full border border-zinc-800">
@@ -35,15 +35,9 @@ function ActionItem({ title, description, action, link, icon, timeAgo, isButton 
           {timeAgo && <span className="text-xs text-zinc-500">{timeAgo}</span>}
         </div>
         <p className="text-xs text-zinc-400 mt-1 mb-3">{description}</p>
-        {isButton ? (
-           <button className="inline-flex items-center text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-md transition-colors shadow-sm">
-             {action}
-           </button>
-        ) : (
-          <Link href={link} className="inline-flex items-center text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-md transition-colors">
-            {action}
-          </Link>
-        )}
+        <Link href={link || '/'} className="inline-flex items-center text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-md transition-colors shadow-sm">
+          {action}
+        </Link>
       </div>
     </div>
   );
@@ -109,7 +103,7 @@ export default function DashboardClient({ metrics }: { metrics: any }) {
                     title={`Verify Payment: ${p.businessId}`}
                     description={`₹${p.amount.toLocaleString()} pending verification`}
                     action="Approve"
-                    isButton={true}
+                    link="/orders?tab=Payments"
                     icon={<DollarSign className="w-4 h-4 text-emerald-500" />}
                   />
                 ))}
@@ -119,7 +113,7 @@ export default function DashboardClient({ metrics }: { metrics: any }) {
                     title={`Quote Needed: ${d.businessId}`}
                     description={`${d.customerName} waiting for quote (₹${d.totalAmount.toLocaleString()})`}
                     action="Send Quote"
-                    isButton={true}
+                    link="/orders?tab=Intake"
                     icon={<User className="w-4 h-4 text-blue-500" />}
                   />
                 ))}
@@ -129,7 +123,7 @@ export default function DashboardClient({ metrics }: { metrics: any }) {
                     title={`Ready to Dispatch: ${d.businessId}`}
                     description={`${d.customerName} order is packed.`}
                     action="Mark Dispatched"
-                    isButton={true}
+                    link="/orders?tab=Dispatch"
                     icon={<Package className="w-4 h-4 text-purple-500" />}
                   />
                 ))}
