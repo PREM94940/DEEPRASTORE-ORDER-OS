@@ -12,7 +12,12 @@ function OrderRequestPortalForm() {
     phone: '',
     email: '',
     source: 'WEBSITE',
+    websiteOrderId: '',
     productType: 'Lehenga', // Default product type selection
+    productName: '',
+    productCode: '',
+    paymentUtr: '',
+    advanceAmount: '',
     notes: '',
     deliveryDate: '',
     address: '',
@@ -26,6 +31,7 @@ function OrderRequestPortalForm() {
 
   const [refFiles, setRefFiles] = useState<File[]>([]);
   const [designFiles, setDesignFiles] = useState<File[]>([]);
+  const [paymentFiles, setPaymentFiles] = useState<File[]>([]);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successData, setSuccessData] = useState<{ enquiryNumber: string; trackingToken: string } | null>(null);
@@ -74,6 +80,13 @@ function OrderRequestPortalForm() {
         designUrls = designUploads.map(r => r.publicUrl);
       }
 
+      // Upload Payment Image (if any)
+      let paymentProofUrl = null;
+      if (paymentFiles.length > 0) {
+        const payUploads = await uploadFilesToSupabase(formData.phone, paymentFiles);
+        if (payUploads.length > 0) paymentProofUrl = payUploads[0].publicUrl;
+      }
+
       // 3. Construct Measurements Object
       let measurements: any = null;
       if (measurementType === 'LEHENGA') {
@@ -84,11 +97,21 @@ function OrderRequestPortalForm() {
         measurements = { kurta: kurtaForm };
       }
 
+      // Construct rich notes
+      let richNotes = formData.notes || '';
+      if (formData.productName) richNotes = `Product Name: ${formData.productName}\n` + richNotes;
+      if (formData.productCode) richNotes = `Product Code: ${formData.productCode}\n` + richNotes;
+      if (formData.source === 'WEBSITE' && formData.websiteOrderId) richNotes = `Website Order ID: ${formData.websiteOrderId}\n` + richNotes;
+      if (formData.paymentUtr) richNotes = `Payment UTR: ${formData.paymentUtr}\n` + richNotes;
+      if (formData.advanceAmount) richNotes = `Advance Amount: ₹${formData.advanceAmount}\n` + richNotes;
+
       // 4. Submit Enquiry
       const result = await submitEnquiryAction({
         ...formData,
+        notes: richNotes,
         referenceImages: refUrls,
         designImages: designUrls,
+        advancePaymentProofUrl: paymentProofUrl,
         measurements,
       });
 
@@ -154,7 +177,7 @@ function OrderRequestPortalForm() {
     <div className="min-h-screen bg-[#0a0a0a] text-white p-4 md:p-8 font-sans">
       <div className="max-w-2xl mx-auto space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">New Order Request</h1>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Deeprastore New Order Request</h1>
           <p className="text-white/60 text-sm">Submit your tailoring requirements. We will review them, send a quote, and confirm your order.</p>
         </div>
 
@@ -200,11 +223,33 @@ function OrderRequestPortalForm() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Intake Source</label>
-                <div className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-sm font-semibold text-emerald-400 font-mono">
-                  {formData.source}
-                </div>
+                <select 
+                  value={formData.source}
+                  onChange={(e) => setFormData({...formData, source: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-sm font-semibold text-emerald-400 font-mono outline-none focus:border-emerald-600 transition-colors"
+                >
+                  <option value="WEBSITE">Website</option>
+                  <option value="WHATSAPP">WhatsApp</option>
+                  <option value="INSTAGRAM">Instagram</option>
+                  <option value="FACEBOOK">Facebook</option>
+                  <option value="WALKIN">Walk-In</option>
+                  <option value="PHONE">Phone</option>
+                  <option value="EXISTING_CUSTOMER">Existing Customer</option>
+                </select>
               </div>
             </div>
+            {formData.source === 'WEBSITE' && (
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Website Order ID (Optional)</label>
+                <input 
+                  type="text" 
+                  value={formData.websiteOrderId}
+                  onChange={(e) => setFormData({...formData, websiteOrderId: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-emerald-600 transition-colors font-mono" 
+                  placeholder="e.g. 1042" 
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Delivery Address *</label>
               <textarea 
@@ -231,6 +276,7 @@ function OrderRequestPortalForm() {
                 >
                   <option value="Lehenga">Lehenga</option>
                   <option value="Half Saree">Half Saree</option>
+                  <option value="Ready Wear Half Saree (Free Size)">Ready Wear Half Saree (Free Size)</option>
                   <option value="Blouse">Blouse</option>
                   <option value="Kurta">Kurta</option>
                   <option value="Dress">Dress</option>
@@ -245,6 +291,29 @@ function OrderRequestPortalForm() {
                   value={formData.deliveryDate}
                   onChange={(e) => setFormData({...formData, deliveryDate: e.target.value})}
                   className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-emerald-600 transition-colors" 
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Product Name (Optional)</label>
+                <input 
+                  type="text" 
+                  value={formData.productName}
+                  onChange={(e) => setFormData({...formData, productName: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-emerald-600 transition-colors font-medium" 
+                  placeholder="e.g. Red Bridal Lehenga" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Product Code (Optional)</label>
+                <input 
+                  type="text" 
+                  value={formData.productCode}
+                  onChange={(e) => setFormData({...formData, productCode: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-emerald-600 transition-colors font-mono" 
+                  placeholder="e.g. DP-1205" 
                 />
               </div>
             </div>
@@ -369,9 +438,46 @@ function OrderRequestPortalForm() {
             )}
           </div>
 
-          {/* SECTION 4: NOTES */}
+          {/* SECTION 4: PAYMENT DETAILS */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold border-b border-white/10 pb-2 text-white/90">4. Extra Notes</h2>
+            <h2 className="text-lg font-semibold border-b border-white/10 pb-2 text-white/90">4. Payment Details (Optional)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Payment UTR / Transaction ID</label>
+                <input 
+                  type="text" 
+                  value={formData.paymentUtr}
+                  onChange={(e) => setFormData({...formData, paymentUtr: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-emerald-600 transition-colors font-mono" 
+                  placeholder="e.g. UTR123456789" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Advance Amount Paid</label>
+                <input 
+                  type="number" 
+                  value={formData.advanceAmount}
+                  onChange={(e) => setFormData({...formData, advanceAmount: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-emerald-600 transition-colors font-mono" 
+                  placeholder="₹" 
+                />
+              </div>
+            </div>
+            <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-4">
+              <label className="text-sm font-semibold text-white mb-1 block">Payment Screenshot (Optional)</label>
+              <p className="text-xs text-white/40 mb-3">Upload a screenshot of your payment receipt.</p>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => setPaymentFiles(Array.from(e.target.files || []))}
+                className="w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* SECTION 5: NOTES */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold border-b border-white/10 pb-2 text-white/90">5. Extra Notes</h2>
             <div className="space-y-2">
               <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Special Instructions for Tailors</label>
               <textarea 

@@ -45,6 +45,7 @@ export async function submitEnquiryAction(data: any) {
       expectedDeliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
       referenceImages: data.referenceImages || [],
       designImages: data.designImages || [],
+      advancePaymentProofUrl: data.advancePaymentProofUrl || null,
       status: 'REQUEST',
     });
 
