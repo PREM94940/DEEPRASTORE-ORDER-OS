@@ -174,7 +174,19 @@ export function OrderDrawer({
                 {order.source}
               </span>
             </h2>
-            <p className="text-xs text-zinc-500 mt-1">{new Date(order.createdAt).toLocaleString()}</p>
+            <p className="text-xs text-zinc-500 mt-1">{new Date(order.createdAt || order.orderDate).toLocaleString()}</p>
+            {order.trackingToken && (
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.origin + '/track/' + order.trackingToken);
+                  alert('Tracking link copied to clipboard! Send this to the customer via WhatsApp.');
+                }}
+                className="mt-2 text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20 transition-colors w-fit"
+              >
+                <ExternalLink size={12} />
+                Copy Public Tracking Link
+              </button>
+            )}
           </div>
           <button 
             onClick={onClose}

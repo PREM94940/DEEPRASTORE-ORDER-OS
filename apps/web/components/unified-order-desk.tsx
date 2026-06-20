@@ -529,6 +529,22 @@ Thank you for shopping with us!`;
 
       {/* ORDER CONVERSION / CREATION FORM */}
       <form onSubmit={handleSubmit} className="bg-[#111] p-6 rounded-xl border border-white/10 space-y-8">
+        {/* HEADER FOR NEW ORDER */}
+        <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
+          <h2 className="text-xl font-bold text-white">New Order</h2>
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.origin + '/intake');
+              alert('Customer Intake Form Link copied to clipboard! Share this link with customers so they can fill out their details and measurements.');
+            }}
+            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded transition-colors flex items-center gap-2 border border-zinc-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Copy External Intake Link
+          </button>
+        </div>
+
         {/* SECTION 1: CUSTOMER */}
         <div className="space-y-4">
           <h3 className="text-lg font-bold border-b border-white/10 pb-2">1. Customer & Source</h3>

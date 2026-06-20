@@ -132,7 +132,8 @@ export async function getCustomerProfileAction(phone: string) {
           totalAmount: Number(o.totalAmount || 0),
           balanceAmount: Number(o.balanceAmount || 0),
           advanceAmount: Number(o.advanceAmount || 0),
-          paymentStatus: o.paymentStatus
+          paymentStatus: o.paymentStatus,
+          trackingToken: o.trackingToken
         })),
         payments: customerPayments.map(p => ({
           id: p.id,

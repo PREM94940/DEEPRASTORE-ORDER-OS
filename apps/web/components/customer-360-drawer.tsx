@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { 
-  X, User, ShoppingBag, CreditCard, Ruler, FileText, PlusCircle, MessageCircle 
+  X, User, ShoppingBag, CreditCard, Ruler, FileText, PlusCircle, MessageCircle, ExternalLink 
 } from "lucide-react";
 import { createOrderAction } from "@/app/(staff)/actions/command-center";
 import { updateMeasurementsAction, addCustomerNoteAction } from "@/app/(staff)/actions/customer";
@@ -26,6 +26,7 @@ export interface CustomerProfilePayload {
     balanceAmount?: number;
     advanceAmount?: number;
     paymentStatus?: string;
+    trackingToken?: string | null;
   }>;
   payments: Array<{
     id: string;
@@ -390,7 +391,21 @@ export function Customer360Drawer({
               {payload?.recentOrders?.length ? payload.recentOrders.map(order => (
                 <div key={order.id} className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-4 space-y-2 hover:border-zinc-700 transition-colors">
                   <div className="flex justify-between items-start">
-                    <div className="font-mono text-zinc-200 font-semibold">{order.orderNumber}</div>
+                    <div>
+                      <div className="font-mono text-zinc-200 font-semibold">{order.orderNumber}</div>
+                      {order.trackingToken && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(window.location.origin + '/track/' + order.trackingToken);
+                            alert('Tracking link copied!');
+                          }}
+                          className="mt-1 text-[10px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                        >
+                          <ExternalLink size={10} />
+                          Copy Tracking Link
+                        </button>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-1.5 justify-end">
                       {/* Financial Status Badge */}
                       {(() => {
