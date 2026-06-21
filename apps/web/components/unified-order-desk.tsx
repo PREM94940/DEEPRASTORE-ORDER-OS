@@ -12,6 +12,15 @@ export function UnifiedOrderDesk({
   initialEnquiry?: any,
   activeStaff?: any[]
 }) {
+  const safeDate = (dateStr?: string | null) => {
+    if (!dateStr) return '';
+    try {
+      return new Date(dateStr).toISOString().split('T')[0];
+    } catch (e) {
+      return '';
+    }
+  };
+
   const router = useRouter();
   const [formData, setFormData] = useState({
     enquiryId: initialEnquiry?.id || '',
@@ -39,8 +48,8 @@ export function UnifiedOrderDesk({
     utrNumber: '',
     
     // Dates & Notes
-    orderDate: new Date().toISOString().split('T')[0],
-    deliveryDate: initialEnquiry?.expectedDeliveryDate ? new Date(initialEnquiry.expectedDeliveryDate).toISOString().split('T')[0] : '',
+    orderDate: safeDate(new Date().toISOString()),
+    deliveryDate: safeDate(initialEnquiry?.expectedDeliveryDate),
     notes: initialEnquiry?.notes || '',
     lineItems: [{ productId: '', name: '', quantity: 1, price: '' }]
   });
@@ -49,8 +58,8 @@ export function UnifiedOrderDesk({
   
   // Existing uploaded images from enquiry
   const [existingAttachments, setExistingAttachments] = useState<string[]>([
-    ...(initialEnquiry?.referenceImages || []),
-    ...(initialEnquiry?.designImages || [])
+    ...(Array.isArray(initialEnquiry?.referenceImages) ? initialEnquiry.referenceImages : []),
+    ...(Array.isArray(initialEnquiry?.designImages) ? initialEnquiry.designImages : [])
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successReceipt, setSuccessReceipt] = useState<any>(null);
@@ -82,8 +91,8 @@ export function UnifiedOrderDesk({
       setReviewAssignedTo(initialEnquiry.assignedTo || '');
       setReceiptFile(null);
       setExistingAttachments([
-        ...(initialEnquiry.referenceImages || []),
-        ...(initialEnquiry.designImages || [])
+        ...(Array.isArray(initialEnquiry.referenceImages) ? initialEnquiry.referenceImages : []),
+        ...(Array.isArray(initialEnquiry.designImages) ? initialEnquiry.designImages : [])
       ]);
 
       setFormData(prev => ({
@@ -107,7 +116,7 @@ export function UnifiedOrderDesk({
       setQuoteAmount(initialEnquiry.quote?.quoteAmount || '');
       setRequiredAdvance(initialEnquiry.quote?.requiredAdvance || '');
       setQuoteNotes(initialEnquiry.quote?.quoteNotes || '');
-      setExpiresAt(initialEnquiry.quote?.expiresAt ? new Date(initialEnquiry.quote.expiresAt).toISOString().split('T')[0] : '');
+      setExpiresAt(safeDate(initialEnquiry.quote?.expiresAt));
       setInvoiceFile(null);
 
       // Fetch comments
@@ -131,7 +140,7 @@ export function UnifiedOrderDesk({
         source: initialEnquiry.source || 'WALK_IN',
         orderType: 'CUSTOM_STITCHING',
         productDetails: initialEnquiry.productType || '',
-        deliveryDate: initialEnquiry.expectedDeliveryDate ? new Date(initialEnquiry.expectedDeliveryDate).toISOString().split('T')[0] : '',
+        deliveryDate: safeDate(initialEnquiry.expectedDeliveryDate),
         notes: initialEnquiry.notes || '',
         // Prefill totalAmount and advanceAmount with approved quote if available
         totalAmount: initialEnquiry.quote?.quoteAmount || '',
