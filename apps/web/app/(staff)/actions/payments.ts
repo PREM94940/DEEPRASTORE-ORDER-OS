@@ -22,15 +22,21 @@ export async function approvePaymentAction(orderId: string, paymentId: string, s
 
       const paymentAmount = parseFloat(payment.amount?.toString() || "0");
       const totalAmount = parseFloat(order.totalAmount?.toString() || "0");
-      const currentAdvance = parseFloat(order.advanceAmount?.toString() || "0");
-      
-      // If balance is null, it means no payments have been processed yet, so balance is total.
-      const currentBalance = order.balanceAmount !== null 
-        ? parseFloat(order.balanceAmount.toString()) 
-        : totalAmount;
 
-      const newAdvance = (currentAdvance + paymentAmount).toFixed(2);
-      const newBalance = Math.max(0, currentBalance - paymentAmount).toFixed(2);
+      // Recalculate advance amount dynamically from all verified payments to prevent double counting
+      const allPayments = await tx.select().from(payments).where(eq(payments.orderId, orderId));
+      
+      let totalVerified = 0;
+      for (const p of allPayments) {
+        if (p.status === 'VERIFIED') totalVerified += parseFloat(p.amount?.toString() || "0");
+      }
+      
+      // The current payment being approved is included in totalVerified because we just fetched it before updating?
+      // Wait, we haven't updated it yet! We need to include the current payment amount if we are verifying it.
+      totalVerified += paymentAmount;
+
+      const newAdvance = totalVerified.toFixed(2);
+      const newBalance = Math.max(0, totalAmount - totalVerified).toFixed(2);
 
       // 1. Update the order
       await tx.update(orders)
@@ -71,9 +77,28 @@ export async function rejectPaymentAction(orderId: string, paymentId: string, st
   try {
     await requireStaffAuth();
     await db.transaction(async (tx) => {
+      // Fetch order to get total amount
+      const [order] = await tx.select().from(orders).where(eq(orders.id, orderId));
+      if (!order) throw new Error("Order not found");
+      const totalAmount = parseFloat(order.totalAmount?.toString() || "0");
+
+      // Recalculate advance amount dynamically from all verified payments
+      const allPayments = await tx.select().from(payments).where(eq(payments.orderId, orderId));
+      
+      let totalVerified = 0;
+      for (const p of allPayments) {
+        if (p.status === 'VERIFIED') totalVerified += parseFloat(p.amount?.toString() || "0");
+      }
+      
+      // Since we are rejecting the current payment, it is NOT included in totalVerified
+      const newAdvance = totalVerified.toFixed(2);
+      const newBalance = Math.max(0, totalAmount - totalVerified).toFixed(2);
+
       // 1. Update the order
       await tx.update(orders)
         .set({
+          advanceAmount: newAdvance,
+          balanceAmount: newBalance,
           paymentStatus: 'REJECTED',
           status: 'PAYMENT_REJECTED',
           updatedAt: new Date()
