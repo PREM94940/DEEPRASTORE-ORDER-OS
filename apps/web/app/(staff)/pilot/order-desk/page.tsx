@@ -14,7 +14,7 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
   const showRightPanel = !!selectedEnquiry || isCreatingNew;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-full md:h-full bg-[#0a0a0a] text-white">
+    <div className="flex flex-col md:flex-row h-full bg-[#0a0a0a] text-white">
       {/* LEFT PANEL: INTAKE QUEUE */}
       <div className={`w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/10 flex-col md:h-full overflow-hidden ${showRightPanel ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-white/10">
