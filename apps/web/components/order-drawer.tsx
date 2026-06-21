@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck, AlertTriangle } from "lucide-react";
-import { moveOrderAction, moveDispatchOrderAction, dispatchOrderAction } from "@/app/(staff)/actions/command-center";
+import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck, AlertTriangle, CreditCard } from "lucide-react";
+import { moveOrderAction, moveDispatchOrderAction, dispatchOrderAction, addPaymentAction } from "@/app/(staff)/actions/command-center";
 import { useCustomer360 } from "@/hooks/useCustomer360";
 import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
 import { checkIsAdminAction, deleteOrderAction } from "@/app/(staff)/actions/admin";
@@ -40,6 +40,9 @@ export function OrderDrawer({
   const [showDispatchForm, setShowDispatchForm] = React.useState(false);
   const [courierName, setCourierName] = React.useState("");
   const [trackingId, setTrackingId] = React.useState("");
+  const [showPaymentForm, setShowPaymentForm] = React.useState(false);
+  const [paymentAmount, setPaymentAmount] = React.useState("");
+  const [paymentUtr, setPaymentUtr] = React.useState("");
   const router = useRouter();
 
   const [isAdmin, setIsAdmin] = React.useState(false);
@@ -50,6 +53,9 @@ export function OrderDrawer({
     setShowDispatchForm(false);
     setCourierName("");
     setTrackingId("");
+    setShowPaymentForm(false);
+    setPaymentAmount("");
+    setPaymentUtr("");
     setShowDeleteConfirm(false);
     setShowExceptionDrawer(false);
 
@@ -162,6 +168,33 @@ export function OrderDrawer({
     } finally {
       setTransitioning(false);
       setShowDispatchForm(false);
+    }
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentAmount || isNaN(Number(paymentAmount))) {
+      alert("Please enter a valid payment amount.");
+      return;
+    }
+    setTransitioning(true);
+    try {
+      const res = await addPaymentAction(order.id, Number(paymentAmount), paymentUtr);
+      if (res.success) {
+        alert("Payment logged successfully. It has been sent to the Payment Center for verification.");
+        setShowPaymentForm(false);
+        setPaymentAmount("");
+        setPaymentUtr("");
+        React.startTransition(() => {
+          router.refresh();
+        });
+      } else {
+        alert(`Failed to log payment: ${res.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setTransitioning(false);
     }
   };
 
@@ -331,10 +364,67 @@ export function OrderDrawer({
                   );
                 })()}
               </div>
+              
+              {!showPaymentForm && parseFloat(order.balanceAmount || "0") > 0 && (
+                <div className="pt-3 mt-1 border-t border-zinc-800/60">
+                  <button 
+                    onClick={() => setShowPaymentForm(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-semibold transition-colors"
+                  >
+                    <CreditCard size={14} /> Log Additional Payment
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Financials */}
+          {/* Payment Form Overlay */}
+          {showPaymentForm && (
+            <form onSubmit={handlePaymentSubmit} className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg space-y-4">
+              <h4 className="font-semibold text-zinc-100 flex items-center gap-2">
+                <CreditCard size={16} /> Log Payment
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">Amount Paid (₹) *</label>
+                  <input 
+                    type="number"
+                    required
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-md text-sm outline-none focus:border-blue-500 text-zinc-100"
+                    placeholder="e.g. 5000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1">UTR / Ref Number</label>
+                  <input 
+                    type="text"
+                    value={paymentUtr}
+                    onChange={(e) => setPaymentUtr(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-md text-sm outline-none focus:border-blue-500 text-zinc-100"
+                    placeholder="Optional UTR"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPaymentForm(false)}
+                    className="flex-1 py-2 text-zinc-400 hover:text-zinc-200 text-sm font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={transitioning}
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-md py-2 text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {transitioning ? 'Logging...' : 'Submit Payment'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
 
           {/* Dispatch Form Overlay (if DISPATCHED is triggered) */}
           {showDispatchForm && (

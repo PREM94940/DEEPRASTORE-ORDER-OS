@@ -150,6 +150,7 @@ export async function addPaymentAction(
     revalidatePath('/production');
     revalidatePath('/dispatch');
     revalidatePath('/payments');
+    revalidatePath('/orders');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
