@@ -707,7 +707,7 @@ Thank you for shopping with us!`;
       )}
 
       {/* ORDER CONVERSION / CREATION FORM */}
-      {initialEnquiry.status !== 'CONVERTED' && (
+      {initialEnquiry?.status !== 'CONVERTED' && (
       <form onSubmit={handleSubmit} className="bg-[#111] p-4 rounded-xl border border-white/10 space-y-4">
         {/* HEADER FOR NEW ORDER */}
         <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
