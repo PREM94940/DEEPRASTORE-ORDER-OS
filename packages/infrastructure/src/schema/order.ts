@@ -22,6 +22,7 @@ export const orders = pgTable('orders', {
   dispatchStatus: varchar('dispatch_status', { length: 50 }).notNull().default('NOT_STARTED'), // NOT_STARTED, PACKING, PACKED, DISPATCHED, DELIVERED, RETURNED
   statusUpdatedAt: timestamp('status_updated_at').defaultNow().notNull(),
   utrNumber: varchar('utr_number', { length: 100 }),
+  websiteOrderId: varchar('website_order_id', { length: 255 }),
   paymentProofUrl: varchar('payment_proof_url', { length: 1024 }),
   verificationStaff: varchar('verification_staff', { length: 255 }),
   verificationTime: timestamp('verification_time'),
@@ -118,5 +119,20 @@ export const payments = pgTable('payments', {
   status: varchar('status', { length: 50 }).notNull().default('PENDING'),
   verifiedBy: varchar('verified_by', { length: 255 }),
   verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const orderChangeRequests = pgTable('order_change_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull(),
+  orderId: uuid('order_id').notNull().references(() => orders.id),
+  changeType: varchar('change_type', { length: 50 }).notNull(), // MEASUREMENT_CHANGE, DESIGN_CHANGE, FABRIC_CHANGE, ADDRESS_CHANGE, PRODUCT_ADDITION, PRODUCT_REMOVAL, OTHER
+  reason: varchar('reason', { length: 2048 }).notNull(),
+  costImpact: numeric('cost_impact', { precision: 10, scale: 2 }).default('0'),
+  deliveryImpactDays: integer('delivery_impact_days').default(0),
+  requestedBy: varchar('requested_by', { length: 255 }).notNull(),
+  approvalStatus: varchar('approval_status', { length: 50 }).notNull().default('PENDING'), // PENDING, APPROVED, REJECTED
+  approvedBy: varchar('approved_by', { length: 255 }),
+  resolvedAt: timestamp('resolved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

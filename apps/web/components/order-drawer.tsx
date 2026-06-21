@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck, AlertTriangle, CreditCard } from "lucide-react";
-import { moveOrderAction, moveDispatchOrderAction, dispatchOrderAction, addPaymentAction } from "@/app/(staff)/actions/command-center";
+import { X, ExternalLink, Image as ImageIcon, MessageCircle, Truck, AlertTriangle, CreditCard, PlusCircle, FileEdit } from "lucide-react";
+import { moveOrderAction, moveDispatchOrderAction, dispatchOrderAction, addPaymentAction, addLineItemToOrderAction, spawnNewOrderAction } from "@/app/(staff)/actions/command-center";
 import { useCustomer360 } from "@/hooks/useCustomer360";
 import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
 import { checkIsAdminAction, deleteOrderAction } from "@/app/(staff)/actions/admin";
 import { useRouter } from "next/navigation";
 import { ExceptionDrawer } from "./exception-drawer";
+import { ChangeRequestDrawer } from "./change-request-drawer";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   'DRAFT': ['PENDING_VERIFICATION', 'CANCELLED'],
@@ -43,11 +44,18 @@ export function OrderDrawer({
   const [showPaymentForm, setShowPaymentForm] = React.useState(false);
   const [paymentAmount, setPaymentAmount] = React.useState("");
   const [paymentUtr, setPaymentUtr] = React.useState("");
+  
+  const [showAddProductForm, setShowAddProductForm] = React.useState(false);
+  const [newProductName, setNewProductName] = React.useState("");
+  const [newProductQty, setNewProductQty] = React.useState("1");
+  const [newProductPrice, setNewProductPrice] = React.useState("");
+  
   const router = useRouter();
 
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [showExceptionDrawer, setShowExceptionDrawer] = React.useState(false);
+  const [showChangeRequestDrawer, setShowChangeRequestDrawer] = React.useState(false);
 
   React.useEffect(() => {
     setShowDispatchForm(false);
@@ -198,6 +206,50 @@ export function OrderDrawer({
     }
   };
 
+  const handleAddProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProductName.trim() || !newProductPrice.trim()) {
+      alert("Please enter a product name and price.");
+      return;
+    }
+    setTransitioning(true);
+    try {
+      const activeProductionStatuses = ['CUTTING', 'STITCHING', 'QC', 'READY', 'PACKING'];
+      
+      if (activeProductionStatuses.includes(order.status)) {
+        // Must create new order via server action (spawn new DP-XXXX)
+        const res = await spawnNewOrderAction(order.id, newProductName, Number(newProductQty), Number(newProductPrice));
+        if (res.success) {
+          alert("This order is already in production. A new separate order has been created for the new product.");
+          setShowAddProductForm(false);
+        } else {
+          alert(`Failed to spawn new order: ${res.error}`);
+        }
+      } else {
+        // Pre-production: append to existing line items via server action
+        const res = await addLineItemToOrderAction(order.id, newProductName, Number(newProductQty), Number(newProductPrice));
+        if (res.success) {
+          alert("Product added to existing order successfully.");
+          setShowAddProductForm(false);
+        } else {
+          alert(`Failed to add product: ${res.error}`);
+        }
+      }
+      
+      setNewProductName("");
+      setNewProductQty("1");
+      setNewProductPrice("");
+      
+      React.startTransition(() => {
+        router.refresh();
+      });
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setTransitioning(false);
+    }
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -270,11 +322,19 @@ export function OrderDrawer({
                 
                 <button
                   type="button"
+                  onClick={() => setShowChangeRequestDrawer(true)}
+                  className="px-2 py-2 rounded-md bg-blue-950/20 text-blue-500 hover:bg-blue-950/40 transition-colors border border-blue-900/30 font-semibold flex items-center justify-center gap-1.5 text-xs whitespace-nowrap"
+                  title="Change Request"
+                >
+                  <FileEdit size={14} /> Change Req
+                </button>
+                <button
+                  type="button"
                   onClick={() => setShowExceptionDrawer(true)}
-                  className="px-3 py-2 rounded-md bg-amber-950/20 text-amber-500 hover:bg-amber-950/40 transition-colors border border-amber-900/30 font-semibold flex items-center justify-center gap-2 text-sm"
+                  className="px-2 py-2 rounded-md bg-amber-950/20 text-amber-500 hover:bg-amber-950/40 transition-colors border border-amber-900/30 font-semibold flex items-center justify-center gap-1.5 text-xs whitespace-nowrap"
                   title="Raise Exception"
                 >
-                  <AlertTriangle size={16} /> Exception
+                  <AlertTriangle size={14} /> Exception
                 </button>
               </div>
 
@@ -287,8 +347,53 @@ export function OrderDrawer({
                 >
                   <MessageCircle size={16} /> WhatsApp
                 </a>
+                <button
+                  type="button"
+                  onClick={() => setShowAddProductForm(!showAddProductForm)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-md bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors border border-blue-500/20 font-semibold text-sm"
+                >
+                  <PlusCircle size={16} /> Add Product
+                </button>
               </div>
             </div>
+            
+            {showAddProductForm && (
+              <form onSubmit={handleAddProductSubmit} className="mt-4 p-3 border border-blue-500/30 rounded-md bg-blue-500/5 space-y-3">
+                <h4 className="text-xs font-bold text-blue-400">Add Product to Flow</h4>
+                <div className="flex gap-2">
+                  <input
+                    required
+                    placeholder="Product Name"
+                    value={newProductName}
+                    onChange={e => setNewProductName(e.target.value)}
+                    className="flex-1 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-sm text-zinc-100"
+                  />
+                  <input
+                    required
+                    type="number"
+                    placeholder="Qty"
+                    value={newProductQty}
+                    onChange={e => setNewProductQty(e.target.value)}
+                    className="w-16 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-sm text-zinc-100"
+                  />
+                  <input
+                    required
+                    type="number"
+                    placeholder="Price (₹)"
+                    value={newProductPrice}
+                    onChange={e => setNewProductPrice(e.target.value)}
+                    className="w-24 px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded text-sm text-zinc-100"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={transitioning}
+                  className="w-full py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs disabled:opacity-50 transition-colors"
+                >
+                  {transitioning ? 'Processing...' : 'Confirm'}
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Primary Image */}
@@ -524,6 +629,14 @@ export function OrderDrawer({
         order={order}
         isOpen={showExceptionDrawer}
         onClose={() => setShowExceptionDrawer(false)}
+        onOptimisticUpdate={onOptimisticUpdate}
+      />
+
+      {/* Nested Change Request Drawer */}
+      <ChangeRequestDrawer 
+        order={order}
+        isOpen={showChangeRequestDrawer}
+        onClose={() => setShowChangeRequestDrawer(false)}
         onOptimisticUpdate={onOptimisticUpdate}
       />
     </>

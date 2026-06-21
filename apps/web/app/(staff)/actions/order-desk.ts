@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@deeprastore/infrastructure';
-import { orders, enquiries, customers, payments, customerAddresses, measurementsHistory, enquiryQuotes, enquiryComments } from '@deeprastore/infrastructure/src/schema';
+import { orders, orderLineItems, enquiries, customers, payments, customerAddresses, measurementsHistory, enquiryQuotes, enquiryComments } from '@deeprastore/infrastructure/src/schema';
 import { eq, and, desc, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { notifyOrderCreated, notifyPaymentReceived } from './notifications';
@@ -73,7 +73,8 @@ export async function updateEnquiryStatusAction(
     quoteNotes?: string;
     invoiceUrl?: string;
     expiresAt?: string;
-  }
+  },
+  utr?: string
 ) {
   try {
     await requireStaffAuth();
@@ -89,6 +90,9 @@ export async function updateEnquiryStatusAction(
     }
     if (advancePaymentProofUrl !== undefined) {
       updateData.advancePaymentProofUrl = advancePaymentProofUrl;
+    }
+    if (utr !== undefined) {
+      updateData.utr = utr;
     }
 
     if (quoteData && quoteData.quoteAmount) {
@@ -374,6 +378,20 @@ export async function createUnifiedOrderAction(data: any) {
       }).returning();
       
       orderResult = newOrder;
+
+      // 4. Create Line Items
+      if (data.lineItems && data.lineItems.length > 0) {
+        await tx.insert(orderLineItems).values(
+          data.lineItems.map((item: any) => ({
+            tenantId: MOCK_TENANT_ID,
+            orderId: newOrder.id,
+            productId: item.productId || item.name, // Fallback name to productId for now
+            quantity: item.quantity,
+            price: item.price.toString() || '0',
+            status: 'PENDING'
+          }))
+        );
+      }
 
       // 4. Update Enquiry Status if this came from an enquiry
       if (data.enquiryId) {

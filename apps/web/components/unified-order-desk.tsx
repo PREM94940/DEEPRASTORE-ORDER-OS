@@ -5,7 +5,13 @@ import { createUnifiedOrderAction, updateEnquiryStatusAction, addEnquiryCommentA
 import { uploadFilesToSupabase } from '@/lib/upload';
 import { useRouter } from 'next/navigation';
 
-export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
+export function UnifiedOrderDesk({ 
+  initialEnquiry,
+  activeStaff = []
+}: { 
+  initialEnquiry?: any,
+  activeStaff?: any[]
+}) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     enquiryId: initialEnquiry?.id || '',
@@ -36,6 +42,7 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
     orderDate: new Date().toISOString().split('T')[0],
     deliveryDate: initialEnquiry?.expectedDeliveryDate ? new Date(initialEnquiry.expectedDeliveryDate).toISOString().split('T')[0] : '',
     notes: initialEnquiry?.notes || '',
+    lineItems: [{ productId: '', name: '', quantity: 1, price: '' }]
   });
 
   const [files, setFiles] = useState<File[]>([]);
@@ -48,7 +55,7 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successReceipt, setSuccessReceipt] = useState<any>(null);
   const [reviewAssignedTo, setReviewAssignedTo] = useState(initialEnquiry?.assignedTo || '');
-  const [reviewStatus, setReviewStatus] = useState(initialEnquiry?.status || 'REQUEST');
+  const [reviewStatus, setReviewStatus] = useState(initialEnquiry?.status || 'NEW_REQUEST');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isUpdatingRequest, setIsUpdatingRequest] = useState(false);
 
@@ -162,7 +169,7 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
 
     try {
       let uploadUrl = initialEnquiry.advancePaymentProofUrl || null;
-      if (reviewStatus === 'PAYMENT_RECEIVED' && receiptFile) {
+      if ((reviewStatus === 'READY_TO_CREATE_ORDER' || reviewStatus === 'AWAITING_PAYMENT') && receiptFile) {
         const uploads = await uploadFilesToSupabase(formData.phone, [receiptFile]);
         uploadUrl = uploads[0]?.publicUrl;
       }
@@ -171,6 +178,32 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
       if (invoiceFile) {
         const uploads = await uploadFilesToSupabase(formData.phone, [invoiceFile]);
         currentInvoiceUrl = uploads[0]?.publicUrl;
+      }
+
+      if (reviewStatus === 'PAYMENT_VERIFIED') {
+        // First update the enquiry quote data if needed
+        await updateEnquiryStatusAction(
+          initialEnquiry.id,
+          'AWAITING_PAYMENT', // Temporary until handleSubmit converts it
+          reviewAssignedTo || null,
+          uploadUrl,
+          quoteAmount ? {
+            quoteAmount,
+            requiredAdvance: requiredAdvance || '0',
+            basePrice: basePrice || undefined,
+            discountAmount: discountAmount || undefined,
+            deliveryAmount: deliveryAmount || undefined,
+            deliveryType: deliveryType || undefined,
+            quoteNotes,
+            invoiceUrl: currentInvoiceUrl || undefined,
+            expiresAt: expiresAt || undefined,
+          } : undefined,
+          formData.utrNumber || undefined
+        );
+        // Then auto-create the order
+        const mockEvent = { preventDefault: () => {} } as React.FormEvent;
+        await handleSubmit(mockEvent);
+        return;
       }
 
       const res = await updateEnquiryStatusAction(
@@ -188,7 +221,8 @@ export function UnifiedOrderDesk({ initialEnquiry }: { initialEnquiry?: any }) {
           quoteNotes,
           invoiceUrl: currentInvoiceUrl || undefined,
           expiresAt: expiresAt || undefined,
-        } : undefined
+        } : undefined,
+        formData.utrNumber || undefined
       );
 
       if (res.success) {
@@ -384,19 +418,53 @@ Thank you for shopping with us!`;
                 )}
               </div>
 
-              {initialEnquiry.advancePaymentProofUrl && (
-                <div>
-                  <span className="text-xs text-emerald-400 font-bold block mb-1">Payment Proof Screenshot</span>
-                  <a href={initialEnquiry.advancePaymentProofUrl} target="_blank" rel="noreferrer" className="text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded border border-emerald-500/20 font-bold block text-center hover:bg-emerald-500/20 transition-all">
-                    View Screenshot Receipt ↗
-                  </a>
+              {(initialEnquiry.advancePaymentProofUrl || initialEnquiry.utr) && (
+                <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-lg space-y-3">
+                  <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Payment Review</h4>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[10px] text-emerald-400/70 block uppercase">Amount Paid (Advance)</span>
+                      <span className="text-sm font-mono text-emerald-400">
+                        {initialEnquiry.activeQuote?.requiredAdvance ? `₹${initialEnquiry.activeQuote.requiredAdvance}` : 'Pending'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-emerald-400/70 block uppercase">UTR Number</span>
+                      <span className="text-sm font-mono text-emerald-400">{initialEnquiry.utr || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-emerald-400/70 block uppercase">Submitted Date</span>
+                      <span className="text-sm text-emerald-400/90">
+                        {initialEnquiry.updatedAt ? new Date(initialEnquiry.updatedAt).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {initialEnquiry.advancePaymentProofUrl && (
+                    <div className="mt-2">
+                      <span className="text-[10px] text-emerald-400/70 block uppercase mb-1">Screenshot</span>
+                      <img 
+                        src={initialEnquiry.advancePaymentProofUrl} 
+                        alt="Payment Proof" 
+                        className="w-full max-w-[200px] h-auto rounded border border-emerald-500/20"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Controls - Assignment & Status transitions */}
-          <div className="bg-white/5 p-4 rounded-xl border border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {initialEnquiry.status === 'CONVERTED' ? (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between">
+              <div className="space-y-1">
+                <h4 className="text-emerald-400 font-bold text-sm">Converted to Order</h4>
+                <p className="text-xs text-emerald-400/70">This enquiry is locked because it has been converted to an active production order.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/5 p-4 rounded-xl border border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs text-white/50 block">Assign Representative</label>
               <select 
@@ -405,9 +473,9 @@ Thank you for shopping with us!`;
                 className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-semibold"
               >
                 <option value="">Unassigned</option>
-                <option value="Prem">Prem</option>
-                <option value="Priya">Priya</option>
-                <option value="Sales Team">Sales Team</option>
+                {activeStaff.map(staff => (
+                  <option key={staff.email} value={staff.name}>{staff.name}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1.5">
@@ -417,21 +485,17 @@ Thank you for shopping with us!`;
                 onChange={e => setReviewStatus(e.target.value)}
                 className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-semibold"
               >
-                <option value="REQUEST">REQUEST (Submitted)</option>
-                <option value="PRICE_QUOTED">PRICE_QUOTED (Price Quoted)</option>
-                <option value="INVOICE_SENT">INVOICE_SENT (Invoice Sent)</option>
-                <option value="CHANGES_REQUESTED">CHANGES_REQUESTED (Changes Requested)</option>
-                <option value="PAYMENT_RECEIVED">PAYMENT_RECEIVED (Advance Paid)</option>
-                <option value="CUSTOMER_APPROVED">CUSTOMER_APPROVED (Approved)</option>
-                <option value="REJECTED">REJECTED (Rejected)</option>
-                <option value="NO_RESPONSE">NO_RESPONSE (No Response)</option>
-                <option value="QUOTE_EXPIRED">QUOTE_EXPIRED (Quote Expired)</option>
-                <option value="CLOSED">CLOSED (Closed)</option>
+                <option value="NEW_REQUEST">NEW_REQUEST (Needs a quote)</option>
+                <option value="AWAITING_QUOTE">AWAITING_QUOTE (Preparing price)</option>
+                <option value="AWAITING_PAYMENT">AWAITING_PAYMENT (Quote sent)</option>
+                <option value="PAYMENT_VERIFIED">PAYMENT_VERIFIED (Verify advance & auto-create order)</option>
+                <option value="CONVERTED">CONVERTED (Order created - read only)</option>
+                <option value="REJECTED">REJECTED (Dead lead)</option>
               </select>
             </div>
 
             {/* QUOTE / INVOICE EDITOR SECTION */}
-            {(reviewStatus === 'PRICE_QUOTED' || reviewStatus === 'INVOICE_SENT' || reviewStatus === 'CHANGES_REQUESTED' || reviewStatus === 'QUOTE_EXPIRED' || quoteAmount) && (
+            {(reviewStatus === 'AWAITING_QUOTE' || reviewStatus === 'AWAITING_PAYMENT' || reviewStatus === 'PAYMENT_VERIFIED' || quoteAmount) && (
               <div className="col-span-1 md:col-span-2 border-t border-white/10 pt-4 mt-2 space-y-4">
                 <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Quote & Invoice Details</h4>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -538,15 +602,31 @@ Thank you for shopping with us!`;
               </div>
             )}
 
-            {reviewStatus === 'PAYMENT_RECEIVED' && (
-              <div className="col-span-1 md:col-span-2 space-y-1.5 p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
-                <label className="text-xs text-emerald-400 font-bold block">Upload Advance Receipt Image</label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={e => setReceiptFile(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-white/60 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white"
-                />
+            {/* PAYMENT RECEIPT UPLOAD (Only if ready for order) */}
+            {(reviewStatus === 'PAYMENT_VERIFIED' || reviewStatus === 'AWAITING_PAYMENT') && (
+              <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-emerald-400 font-bold block">Upload Advance Receipt Image</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 text-white/70"
+                  />
+                  {initialEnquiry?.advancePaymentProofUrl && !receiptFile && (
+                    <p className="text-[10px] text-emerald-400 mt-1">Receipt already uploaded.</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-emerald-400 font-bold block">Transaction UTR (Optional)</label>
+                  <input
+                    type="text"
+                    value={formData.utrNumber || ''}
+                    onChange={(e) => setFormData({...formData, utrNumber: e.target.value})}
+                    placeholder="Enter 12-digit UTR"
+                    className="w-full bg-[#111] border border-emerald-500/30 rounded p-2.5 text-xs text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
             )}
 
@@ -558,6 +638,7 @@ Thank you for shopping with us!`;
               {isUpdatingRequest ? 'Updating Enquiry...' : 'Update Enquiry Status, Quote & Assignment'}
             </button>
           </div>
+          )}
 
           {/* CUSTOMER RESPONSE TRACKING */}
           {initialEnquiry.customerResponse && (
@@ -617,6 +698,7 @@ Thank you for shopping with us!`;
       )}
 
       {/* ORDER CONVERSION / CREATION FORM */}
+      {initialEnquiry.status !== 'CONVERTED' && (
       <form onSubmit={handleSubmit} className="bg-[#111] p-4 rounded-xl border border-white/10 space-y-4">
         {/* HEADER FOR NEW ORDER */}
         <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
@@ -682,9 +764,22 @@ Thank you for shopping with us!`;
           </div>
         </div>
 
-        {/* SECTION 2: ORDER TYPE & DETAILS */}
+        {/* SECTION 2: ORDER TYPE & PRODUCTS */}
         <div className="space-y-4">
-          <h3 className="text-lg font-bold border-b border-white/10 pb-2">2. Order Details</h3>
+          <div className="flex justify-between items-center border-b border-white/10 pb-2">
+            <h3 className="text-lg font-bold">2. Products & Details</h3>
+            <button
+              type="button"
+              onClick={() => setFormData({
+                ...formData, 
+                lineItems: [...formData.lineItems, { productId: '', name: '', quantity: 1, price: '' }]
+              })}
+              className="text-xs bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 px-3 py-1.5 rounded-lg transition-colors border border-emerald-500/20 font-bold"
+            >
+              + Add Product
+            </button>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <select 
               required
@@ -697,13 +792,61 @@ Thank you for shopping with us!`;
               <option value="FABRIC_STITCHING">Fabric + Stitching</option>
               <option value="ALTERATION">Alteration</option>
             </select>
-            
-            <input 
-              placeholder="Product / Description" 
-              value={formData.productDetails}
-              onChange={e => setFormData({...formData, productDetails: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            />
+          </div>
+
+          {/* Line Items List */}
+          <div className="space-y-3">
+            {formData.lineItems.map((item, index) => (
+              <div key={index} className="flex items-center gap-2 bg-[#222] border border-white/5 p-2 rounded-lg">
+                <input
+                  required
+                  placeholder="Product Name (e.g. Lehenga)"
+                  value={item.name}
+                  onChange={(e) => {
+                    const newItems = [...formData.lineItems];
+                    newItems[index].name = e.target.value;
+                    setFormData({...formData, lineItems: newItems});
+                  }}
+                  className="flex-1 bg-[#111] border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="Qty"
+                  value={item.quantity}
+                  onChange={(e) => {
+                    const newItems = [...formData.lineItems];
+                    newItems[index].quantity = parseInt(e.target.value) || 1;
+                    setFormData({...formData, lineItems: newItems});
+                  }}
+                  className="w-20 bg-[#111] border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Price (₹)"
+                  value={item.price}
+                  onChange={(e) => {
+                    const newItems = [...formData.lineItems];
+                    newItems[index].price = e.target.value;
+                    setFormData({...formData, lineItems: newItems});
+                  }}
+                  className="w-28 bg-[#111] border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
+                />
+                {formData.lineItems.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newItems = formData.lineItems.filter((_, i) => i !== index);
+                      setFormData({...formData, lineItems: newItems});
+                    }}
+                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
 
           {formData.orderType !== 'READY_MADE' && (
@@ -854,6 +997,7 @@ Thank you for shopping with us!`;
           {isSubmitting ? 'Processing...' : 'Create Order'}
         </button>
       </form>
+      )}
     </div>
   );
 }

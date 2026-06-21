@@ -13,12 +13,14 @@ export const enquiries = pgTable('enquiries', {
   notes: varchar('notes', { length: 2048 }),
   expectedDeliveryDate: timestamp('expected_delivery_date'),
   measurements: jsonb('measurements'),
-  status: varchar('status', { length: 50 }).notNull().default('REQUEST'), // REQUEST, PRICE_QUOTED, etc.
+  status: varchar('status', { length: 50 }).notNull().default('NEW_REQUEST'), // NEW_REQUEST, AWAITING_QUOTE, etc.
   orderId: uuid('order_id').references(() => orders.id), // Link back to created order
   enquiryNumber: varchar('enquiry_number', { length: 50 }),
   email: varchar('email', { length: 255 }),
   address: varchar('address', { length: 1024 }),
+  websiteOrderId: varchar('website_order_id', { length: 255 }),
   advancePaymentProofUrl: varchar('advance_payment_proof_url', { length: 1024 }),
+  utr: varchar('utr', { length: 100 }),
   trackingToken: varchar('tracking_token', { length: 100 }),
   assignedTo: varchar('assigned_to', { length: 255 }),
   currentQuoteId: uuid('current_quote_id'), // Link to current active quote version

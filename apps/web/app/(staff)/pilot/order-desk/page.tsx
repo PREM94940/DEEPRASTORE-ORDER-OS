@@ -13,6 +13,11 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
   const isCreatingNew = resolvedSearchParams.new === 'true' || enquiries.length === 0;
   const showRightPanel = !!selectedEnquiry || isCreatingNew;
 
+  const { db } = await import('@deeprastore/infrastructure');
+  const { approvedStaff } = await import('@deeprastore/infrastructure/src/schema/staff');
+  const { eq } = await import('drizzle-orm');
+  const staff = await db.select().from(approvedStaff).where(eq(approvedStaff.isActive, true));
+
   return (
     <div className="flex flex-col md:flex-row h-full bg-[#0a0a0a] text-white">
       {/* LEFT PANEL: INTAKE QUEUE */}
@@ -42,13 +47,12 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
                   <div className="flex flex-col items-end gap-1.5">
                     <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full font-mono text-white/50">{enq.source}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                      enq.status === 'REQUEST' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/10' :
-                      enq.status === 'PRICE_QUOTED' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/10' :
-                      enq.status === 'INVOICE_SENT' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/10' :
-                      enq.status === 'PAYMENT_RECEIVED' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/10' :
-                      enq.status === 'CUSTOMER_APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/10' :
+                      enq.status === 'NEW_REQUEST' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/10' :
+                      enq.status === 'AWAITING_QUOTE' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/10' :
+                      enq.status === 'AWAITING_PAYMENT' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/10' :
+                      enq.status === 'READY_TO_CREATE_ORDER' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/10' :
+                      enq.status === 'ORDER_CREATED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/10' :
                       enq.status === 'REJECTED' ? 'bg-red-500/20 text-red-400 border border-red-500/10' :
-                      enq.status === 'NO_RESPONSE' ? 'bg-zinc-500/20 text-zinc-400 border border-zinc-500/10' :
                       'bg-white/10 text-white/60'
                     }`}>
                       {enq.status.replace('_', ' ')}
@@ -102,7 +106,7 @@ export default async function OrderDeskPage({ searchParams }: { searchParams: Pr
           )}
         </div>
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          <UnifiedOrderDesk key={selectedEnquiry?.id || 'new'} initialEnquiry={selectedEnquiry} />
+          <UnifiedOrderDesk key={selectedEnquiry?.id || 'new'} initialEnquiry={selectedEnquiry} activeStaff={staff} />
         </div>
       </div>
     </div>
