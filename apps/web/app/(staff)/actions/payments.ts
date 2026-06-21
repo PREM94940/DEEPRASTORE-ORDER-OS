@@ -61,9 +61,9 @@ export async function approvePaymentAction(orderId: string, paymentId: string, s
         .where(eq(payments.id, paymentId));
     });
 
-    // Only revalidate paths that directly show payment data
-    // Avoid revalidating '/' (dashboard) here — it triggers heavy getPilotMetrics queries
-    // and can cause Vercel function timeouts, making the UI appear frozen
+    // Revalidate paths so the Action Center (Dashboard) updates immediately
+    // If we skip '/', the staff will see old 'Action Required' alerts until they hard refresh
+    revalidatePath('/');
     revalidatePath('/payments');
     revalidatePath('/orders');
     return { success: true };
@@ -115,6 +115,7 @@ export async function rejectPaymentAction(orderId: string, paymentId: string, st
         .where(eq(payments.id, paymentId));
     });
 
+    revalidatePath('/');
     revalidatePath('/payments');
     revalidatePath('/orders');
     return { success: true };
