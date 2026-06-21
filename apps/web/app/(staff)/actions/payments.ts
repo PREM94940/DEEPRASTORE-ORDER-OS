@@ -21,8 +21,13 @@ export async function approvePaymentAction(orderId: string, paymentId: string, s
       if (!order) throw new Error("Order not found");
 
       const paymentAmount = parseFloat(payment.amount?.toString() || "0");
+      const totalAmount = parseFloat(order.totalAmount?.toString() || "0");
       const currentAdvance = parseFloat(order.advanceAmount?.toString() || "0");
-      const currentBalance = parseFloat(order.balanceAmount?.toString() || "0");
+      
+      // If balance is null, it means no payments have been processed yet, so balance is total.
+      const currentBalance = order.balanceAmount !== null 
+        ? parseFloat(order.balanceAmount.toString()) 
+        : totalAmount;
 
       const newAdvance = (currentAdvance + paymentAmount).toFixed(2);
       const newBalance = Math.max(0, currentBalance - paymentAmount).toFixed(2);
