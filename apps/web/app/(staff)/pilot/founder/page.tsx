@@ -4,11 +4,13 @@ import { db } from '@deeprastore/infrastructure/src/db/client';
 import { approvedStaff } from '@deeprastore/infrastructure/src/schema/staff';
 import { eq } from 'drizzle-orm';
 import FounderDashboard from '@/components/founder/founder-dashboard';
+import { getPilotMetrics } from '@/app/(staff)/actions/pilot';
 
 export default async function FounderControlCenter() {
   const staffSession = await requireStaffAuth();
 
   const [staff] = await db.select().from(approvedStaff).where(eq(approvedStaff.email, staffSession.user.email as string));
+  const metrics = await getPilotMetrics();
 
   if (!staff || staff.role !== 'FOUNDER') {
     // Hard redirect if not founder
@@ -26,7 +28,7 @@ export default async function FounderControlCenter() {
           <p className="text-zinc-400 mt-1">Manage infrastructure, personnel, and business operations.</p>
         </div>
 
-        <FounderDashboard />
+        <FounderDashboard initialMetrics={metrics} />
       </div>
     </div>
   );

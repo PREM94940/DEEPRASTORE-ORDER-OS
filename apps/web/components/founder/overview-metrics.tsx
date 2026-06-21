@@ -1,18 +1,22 @@
-export default function OverviewMetrics() {
+export default function OverviewMetrics({ metrics }: { metrics?: any }) {
+  const totalOrders = metrics?.today?.totalOrders || 0;
+  const pendingPayments = metrics?.today?.pendingPayments || 0;
+  const totalRevenue = metrics?.today?.todaysRevenue || 0;
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-[#111] border border-white/10 rounded-xl p-6">
           <p className="text-zinc-500 text-sm font-medium">Total Orders</p>
-          <p className="text-3xl font-bold text-white mt-2">0</p>
+          <p className="text-3xl font-bold text-white mt-2">{totalOrders}</p>
         </div>
         <div className="bg-[#111] border border-white/10 rounded-xl p-6">
           <p className="text-zinc-500 text-sm font-medium">Pending Verification</p>
-          <p className="text-3xl font-bold text-blue-500 mt-2">0</p>
+          <p className="text-3xl font-bold text-blue-500 mt-2">{pendingPayments}</p>
         </div>
         <div className="bg-[#111] border border-white/10 rounded-xl p-6">
-          <p className="text-zinc-500 text-sm font-medium">Total Revenue</p>
-          <p className="text-3xl font-bold text-emerald-500 mt-2">₹0</p>
+          <p className="text-zinc-500 text-sm font-medium">Today's Revenue</p>
+          <p className="text-3xl font-bold text-emerald-500 mt-2">₹{totalRevenue}</p>
         </div>
       </div>
       

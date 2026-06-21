@@ -6,7 +6,7 @@ import BusinessConfig from './business-config';
 import StartupResetWizard from './startup-reset-wizard';
 import OverviewMetrics from './overview-metrics';
 
-export default function FounderDashboard() {
+export default function FounderDashboard({ initialMetrics }: { initialMetrics?: any }) {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
@@ -41,7 +41,7 @@ export default function FounderDashboard() {
 
       {/* Tab Content */}
       <div className="pt-2">
-        {activeTab === 'dashboard' && <OverviewMetrics />}
+        {activeTab === 'dashboard' && <OverviewMetrics metrics={initialMetrics} />}
         {activeTab === 'staff' && <StaffManagement />}
         {activeTab === 'config' && <BusinessConfig />}
         {activeTab === 'reset' && <StartupResetWizard />}
