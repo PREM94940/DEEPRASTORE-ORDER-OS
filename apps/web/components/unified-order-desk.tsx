@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createUnifiedOrderAction, updateEnquiryStatusAction, addEnquiryCommentAction, getEnquiryCommentsAction } from '@/app/(staff)/actions/order-desk';
 import { uploadFilesToSupabase } from '@/lib/upload';
+import { parseLegacyEnquiryNotes } from '@/lib/enquiry-parser';
 import { useRouter } from 'next/navigation';
 
 export function UnifiedOrderDesk({ 
@@ -67,6 +68,9 @@ export function UnifiedOrderDesk({
   const [reviewStatus, setReviewStatus] = useState(initialEnquiry?.status || 'NEW_REQUEST');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [isUpdatingRequest, setIsUpdatingRequest] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [resubmitReason, setResubmitReason] = useState('');
 
   // Quote states
   const [basePrice, setBasePrice] = useState('');
@@ -130,6 +134,9 @@ export function UnifiedOrderDesk({
       };
       fetchComments();
 
+      // Extract concatenated metadata from notes via isolated parser
+      const parsedData = parseLegacyEnquiryNotes(initialEnquiry.id, initialEnquiry.notes || '');
+
       setFormData(prev => ({
         ...prev,
         enquiryId: initialEnquiry.id,
@@ -140,11 +147,18 @@ export function UnifiedOrderDesk({
         source: initialEnquiry.source || 'WALK_IN',
         orderType: 'CUSTOM_STITCHING',
         productDetails: initialEnquiry.productType || '',
+        lineItems: [{ 
+          productId: '', 
+          name: parsedData.productName || initialEnquiry.productType || 'Custom Product', 
+          code: parsedData.productCode, 
+          quantity: 1, 
+          price: '' 
+        }],
         deliveryDate: safeDate(initialEnquiry.expectedDeliveryDate),
-        notes: initialEnquiry.notes || '',
-        // Prefill totalAmount and advanceAmount with approved quote if available
+        notes: parsedData.cleanNotes,
         totalAmount: initialEnquiry.quote?.quoteAmount || '',
-        advanceAmount: initialEnquiry.quote?.requiredAdvance || '',
+        advanceAmount: parsedData.advanceAmount || initialEnquiry.quote?.requiredAdvance || '',
+        utrNumber: parsedData.utr || initialEnquiry.utr || '',
         basePrice: initialEnquiry.quote?.basePrice || '',
         discountAmount: initialEnquiry.quote?.discountAmount || '',
         deliveryAmount: initialEnquiry.quote?.deliveryAmount || '',
@@ -383,27 +397,116 @@ Thank you for shopping with us!`;
             {/* Left Col - Details */}
             <div className="space-y-3">
               <div>
-                <span className="text-xs text-white/40 block">Customer Name</span>
-                <span className="font-semibold">{initialEnquiry.customerName} ({initialEnquiry.customerPhone})</span>
+                <span className="text-xs text-white/40 block">Customer Name & Phone</span>
+                {isEditing ? (
+                  <div className="flex gap-2 mt-1">
+                    <input className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Name" />
+                    <input className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="Phone" />
+                  </div>
+                ) : (
+                  <span className="font-semibold">{formData.name} ({formData.phone})</span>
+                )}
               </div>
-              {initialEnquiry.email && (
-                <div>
-                  <span className="text-xs text-white/40 block">Email Address</span>
-                  <span className="font-medium">{initialEnquiry.email}</span>
-                </div>
-              )}
-              {initialEnquiry.address && (
-                <div>
-                  <span className="text-xs text-white/40 block">Delivery Address</span>
-                  <span className="font-medium text-xs text-white/90 leading-relaxed block bg-white/5 p-2 rounded">{initialEnquiry.address}</span>
-                </div>
-              )}
-              {initialEnquiry.notes && (
-                <div>
-                  <span className="text-xs text-white/40 block">Customer Notes</span>
-                  <span className="font-medium text-xs italic block bg-white/5 p-2 rounded text-white/70">"{initialEnquiry.notes}"</span>
-                </div>
-              )}
+              <div>
+                <span className="text-xs text-white/40 block">Email Address</span>
+                {isEditing ? (
+                  <input className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white mt-1" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="Email" />
+                ) : (
+                  <span className="font-medium">{formData.email || 'N/A'}</span>
+                )}
+              </div>
+              <div>
+                <span className="text-xs text-white/40 block">Delivery Address</span>
+                {isEditing ? (
+                  <textarea className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white mt-1" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Address" rows={2} />
+                ) : (
+                  <span className="font-medium text-xs text-white/90 leading-relaxed block bg-white/5 p-2 rounded">{formData.address || 'N/A'}</span>
+                )}
+              </div>
+              <div>
+                <span className="text-xs text-white/40 block">Order Date & Delivery Date</span>
+                {isEditing ? (
+                  <div className="flex gap-2 mt-1">
+                    <input type="date" className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.orderDate} onChange={e => setFormData({...formData, orderDate: e.target.value})} />
+                    <input type="date" className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})} />
+                  </div>
+                ) : (
+                  <span className="font-medium text-xs block bg-white/5 p-2 rounded text-white/90">
+                    Order: {formData.orderDate || 'N/A'} | Delivery: {formData.deliveryDate || 'N/A'}
+                  </span>
+                )}
+              </div>
+              <div>
+                <span className="text-xs text-white/40 block">Customer Notes</span>
+                {isEditing ? (
+                  <textarea className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white mt-1" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Notes" rows={2} />
+                ) : (
+                  <span className="font-medium text-xs italic block bg-white/5 p-2 rounded text-white/70">"{formData.notes || 'N/A'}"</span>
+                )}
+              </div>
+
+              <div>
+                <span className="text-xs text-white/40 block mb-1">Products & Fabric</span>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <select className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.orderType} onChange={e => setFormData({...formData, orderType: e.target.value})}>
+                      <option value="READY_MADE">Ready Product</option>
+                      <option value="CUSTOM_STITCHING">Custom Stitching</option>
+                      <option value="FABRIC_STITCHING">Fabric + Stitching</option>
+                      <option value="ALTERATION">Alteration</option>
+                    </select>
+                    {formData.lineItems.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 bg-[#1a1a1a] p-1.5 rounded border border-white/10">
+                        <input className="bg-transparent text-xs text-white flex-1 outline-none" value={item.name} onChange={e => {
+                          const newItems = [...formData.lineItems];
+                          newItems[idx].name = e.target.value;
+                          setFormData({...formData, lineItems: newItems});
+                        }} placeholder="Product" />
+                        <input className="bg-transparent text-xs text-white w-12 outline-none border-l border-white/10 pl-2" type="number" value={item.quantity} onChange={e => {
+                          const newItems = [...formData.lineItems];
+                          newItems[idx].quantity = parseInt(e.target.value) || 1;
+                          setFormData({...formData, lineItems: newItems});
+                        }} placeholder="Qty" />
+                        <input className="bg-transparent text-xs text-white w-20 outline-none border-l border-white/10 pl-2" type="number" value={item.price} onChange={e => {
+                          const newItems = [...formData.lineItems];
+                          newItems[idx].price = e.target.value;
+                          setFormData({...formData, lineItems: newItems});
+                        }} placeholder="Price" />
+                      </div>
+                    ))}
+                    {formData.orderType !== 'READY_MADE' && (
+                      <div className="flex gap-2">
+                        <select className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.fabricSource} onChange={e => setFormData({...formData, fabricSource: e.target.value})}>
+                          <option value="NONE">No Fabric Needed</option>
+                          <option value="CUSTOMER">Customer Provided</option>
+                          <option value="DEEPRASTORE">Deeprastore Fabric</option>
+                        </select>
+                        {formData.fabricSource === 'CUSTOMER' && (
+                          <input className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.fabricCount} onChange={e => setFormData({...formData, fabricCount: e.target.value})} placeholder="Count/Meters" />
+                        )}
+                        {formData.fabricSource === 'DEEPRASTORE' && (
+                          <input className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white" value={formData.fabricCode} onChange={e => setFormData({...formData, fabricCode: e.target.value})} placeholder="Code" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-white/5 p-2.5 rounded border border-white/5 space-y-2">
+                    <div className="text-xs font-semibold text-white/90">{formData.orderType}</div>
+                    {formData.lineItems.map((item, idx) => (
+                      <div key={idx} className="text-xs text-white/70 flex justify-between border-t border-white/5 pt-1 mt-1">
+                        <span>{item.name || 'Unnamed Product'}</span>
+                        <span className="font-mono">Qty: {item.quantity} | ₹{item.price || 0}</span>
+                      </div>
+                    ))}
+                    {formData.orderType !== 'READY_MADE' && formData.fabricSource !== 'NONE' && (
+                      <div className="text-[10px] text-white/50 bg-[#111] p-1.5 rounded mt-2">
+                        Fabric: {formData.fabricSource} {formData.fabricCount ? `(${formData.fabricCount})` : formData.fabricCode ? `(Code: ${formData.fabricCode})` : ''}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right Col - Measurements & Payment */}
@@ -425,43 +528,84 @@ Thank you for shopping with us!`;
                 ) : (
                   <span className="text-xs text-white/30 italic block">None provided</span>
                 )}
+                <span className="text-[10px] text-white/50 block mt-1">(Measurement editing not supported inline yet)</span>
               </div>
 
-              {(initialEnquiry.advancePaymentProofUrl || initialEnquiry.utr) && (
-                <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-lg space-y-3">
-                  <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Payment Review</h4>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-[10px] text-emerald-400/70 block uppercase">Amount Paid (Advance)</span>
-                      <span className="text-sm font-mono text-emerald-400">
-                        {initialEnquiry.activeQuote?.requiredAdvance ? `₹${initialEnquiry.activeQuote.requiredAdvance}` : 'Pending'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-emerald-400/70 block uppercase">UTR Number</span>
-                      <span className="text-sm font-mono text-emerald-400">{initialEnquiry.utr || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-emerald-400/70 block uppercase">Submitted Date</span>
-                      <span className="text-sm text-emerald-400/90">
-                        {initialEnquiry.updatedAt ? new Date(initialEnquiry.updatedAt).toLocaleDateString() : 'N/A'}
-                      </span>
-                    </div>
+              <div>
+                <span className="text-xs text-white/40 block mb-1">Customer Uploaded Attachments</span>
+                {existingAttachments.length > 0 ? (
+                  <div className="grid grid-cols-4 gap-2">
+                    {existingAttachments.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noreferrer" className="block relative aspect-square rounded overflow-hidden border border-white/10 hover:border-white/30 transition-colors">
+                        <img src={url} alt="Attachment" className="object-cover w-full h-full opacity-80 hover:opacity-100" />
+                      </a>
+                    ))}
                   </div>
+                ) : (
+                  <span className="text-xs text-white/30 italic block">No attachments provided</span>
+                )}
+              </div>
 
-                  {initialEnquiry.advancePaymentProofUrl && (
-                    <div className="mt-2">
-                      <span className="text-[10px] text-emerald-400/70 block uppercase mb-1">Screenshot</span>
+              <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-lg space-y-3">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Payment Review</h4>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[10px] text-emerald-400/70 block uppercase">Total Amount</span>
+                    {isEditing ? (
+                      <input className="bg-[#1a1a1a] border border-emerald-500/30 p-1.5 rounded text-xs w-full text-white mt-1" type="number" value={formData.totalAmount} onChange={e => setFormData({...formData, totalAmount: e.target.value})} placeholder="Total" />
+                    ) : (
+                      <span className="text-sm font-mono text-emerald-400">₹{formData.totalAmount || '0'}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-emerald-400/70 block uppercase">Amount Paid (Advance)</span>
+                    {isEditing ? (
+                      <input className="bg-[#1a1a1a] border border-emerald-500/30 p-1.5 rounded text-xs w-full text-white mt-1" type="number" value={formData.advanceAmount} onChange={e => setFormData({...formData, advanceAmount: e.target.value})} placeholder="Advance" />
+                    ) : (
+                      <span className="text-sm font-mono text-emerald-400">₹{formData.advanceAmount || '0'}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-emerald-400/70 block uppercase">Payment Method</span>
+                    {isEditing ? (
+                      <select className="bg-[#1a1a1a] border border-emerald-500/30 p-1.5 rounded text-xs w-full text-white mt-1" value={formData.paymentMethod} onChange={e => setFormData({...formData, paymentMethod: e.target.value})}>
+                        <option value="PENDING">Pending</option>
+                        <option value="CASH">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="BANK_TRANSFER">Bank Transfer</option>
+                      </select>
+                    ) : (
+                      <span className="text-sm font-mono text-emerald-400">{formData.paymentMethod}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-emerald-400/70 block uppercase">Balance Amount</span>
+                    <span className="text-sm font-mono text-emerald-400 mt-1 block">₹{formData.balanceAmount || '0'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-emerald-400/70 block uppercase">UTR Number</span>
+                    {isEditing ? (
+                      <input className="bg-[#1a1a1a] border border-emerald-500/30 p-1.5 rounded text-xs w-full text-white mt-1" value={formData.utrNumber} onChange={e => setFormData({...formData, utrNumber: e.target.value})} placeholder="UTR Number" />
+                    ) : (
+                      <span className="text-sm font-mono text-emerald-400">{formData.utrNumber || initialEnquiry.utr || 'N/A'}</span>
+                    )}
+                  </div>
+                </div>
+
+                {initialEnquiry.advancePaymentProofUrl && (
+                  <div className="mt-2">
+                    <span className="text-[10px] text-emerald-400/70 block uppercase mb-1">Screenshot</span>
+                    <a href={initialEnquiry.advancePaymentProofUrl} target="_blank" rel="noreferrer">
                       <img 
                         src={initialEnquiry.advancePaymentProofUrl} 
                         alt="Payment Proof" 
-                        className="w-full max-w-[200px] h-auto rounded border border-emerald-500/20"
+                        className="w-full max-w-[200px] h-auto rounded border border-emerald-500/20 hover:opacity-80 transition-opacity cursor-pointer"
                       />
-                    </div>
-                  )}
-                </div>
-              )}
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -473,180 +617,105 @@ Thank you for shopping with us!`;
               </div>
             </div>
           ) : (
-            <div className="bg-white/5 p-4 rounded-xl border border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs text-white/50 block">Assign Representative</label>
-              <select 
-                value={reviewAssignedTo}
-                onChange={e => setReviewAssignedTo(e.target.value)}
-                className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-semibold"
-              >
-                <option value="">Unassigned</option>
-                {activeStaff.map(staff => (
-                  <option key={staff.email} value={staff.name}>{staff.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-white/50 block">Request Status</label>
-              <select 
-                value={reviewStatus}
-                onChange={e => setReviewStatus(e.target.value)}
-                className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-semibold"
-              >
-                <option value="NEW_REQUEST">NEW_REQUEST (Needs a quote)</option>
-                <option value="AWAITING_QUOTE">AWAITING_QUOTE (Preparing price)</option>
-                <option value="AWAITING_PAYMENT">AWAITING_PAYMENT (Quote sent)</option>
-                <option value="PAYMENT_VERIFIED">PAYMENT_VERIFIED (Verify advance & auto-create order)</option>
-                <option value="CONVERTED">CONVERTED (Order created - read only)</option>
-                <option value="REJECTED">REJECTED (Dead lead)</option>
-              </select>
-            </div>
+            <div className="bg-white/5 p-4 rounded-xl border border-white/5 flex flex-col gap-4 mb-4">
+              <div className="flex gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg text-xs transition-colors shadow"
+                >
+                  {isEditing ? 'Cancel Edit' : 'Edit Details'}
+                </button>
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsUpdatingRequest(true);
+                      try {
+                        await updateEnquiryStatusAction(
+                          initialEnquiry.id,
+                          initialEnquiry.status,
+                          reviewAssignedTo || undefined,
+                          undefined,
+                          undefined,
+                          formData.utrNumber || undefined
+                        );
+                        alert('Details saved locally. Click Approve to finalize.');
+                        setIsEditing(false);
+                      } finally {
+                        setIsUpdatingRequest(false);
+                      }
+                    }}
+                    disabled={isUpdatingRequest}
+                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors shadow disabled:opacity-50"
+                  >
+                    Save Changes
+                  </button>
+                )}
+              </div>
 
-            {/* QUOTE / INVOICE EDITOR SECTION */}
-            {(reviewStatus === 'AWAITING_QUOTE' || reviewStatus === 'AWAITING_PAYMENT' || reviewStatus === 'PAYMENT_VERIFIED' || quoteAmount) && (
-              <div className="col-span-1 md:col-span-2 border-t border-white/10 pt-4 mt-2 space-y-4">
-                <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Quote & Invoice Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-white/50 block">Base Price (₹) *</label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g. 8500"
-                      value={basePrice}
-                      onChange={e => setBasePrice(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-mono"
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm transition-colors shadow-lg disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Approving...' : 'Approve & Create Order'}
+                </button>
+              )}
+
+              {!isEditing && (
+                <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-4 mt-2">
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="text"
+                      placeholder="Reason for Resubmission..."
+                      value={resubmitReason}
+                      onChange={(e) => setResubmitReason(e.target.value)}
+                      className="bg-[#111] border border-white/10 p-2 rounded text-xs text-white outline-none focus:border-yellow-500"
                     />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-white/50 block">Discount (₹)</label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g. 500"
-                      value={discountAmount}
-                      onChange={e => setDiscountAmount(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-green-400 outline-none focus:border-green-500 font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-white/50 block">Delivery Fee (₹)</label>
-                    <input 
-                      type="number" 
-                      placeholder="e.g. 150"
-                      value={deliveryAmount}
-                      onChange={e => setDeliveryAmount(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500 font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-white/50 block">Final Quoted Price (₹)</label>
-                    <input 
-                      type="number" 
-                      placeholder="Auto Calculated"
-                      value={quoteAmount}
-                      readOnly={!!basePrice}
-                      onChange={e => !basePrice && setQuoteAmount(e.target.value)}
-                      className={`w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs font-mono font-bold ${basePrice ? 'text-blue-400 opacity-70 cursor-not-allowed' : 'text-white outline-none focus:border-blue-500'}`}
-                    />
-                  </div>
-                  <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs text-white/50 block">Delivery Type</label>
-                    <select 
-                      value={deliveryType}
-                      onChange={e => setDeliveryType(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500"
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!resubmitReason) return alert('Reason required');
+                        setIsUpdatingRequest(true);
+                        await updateEnquiryStatusAction(initialEnquiry.id, 'NEEDS_CUSTOMER_UPDATE', undefined, undefined, undefined, undefined);
+                        await addEnquiryCommentAction(initialEnquiry.id, 'System', `Requested Resubmission: ${resubmitReason}`);
+                        setIsUpdatingRequest(false);
+                        router.refresh();
+                      }}
+                      className="py-2 bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-500 font-bold rounded-lg text-xs transition-colors border border-yellow-500/20"
                     >
-                      <option value="IN_STORE_PICKUP">Pickup from Store</option>
-                      <option value="LOCAL_INSTANT">Rapido/Ola/Uber Delivery</option>
-                      <option value="STANDARD_PARCEL">DTDC / Delhivery / India Post</option>
-                    </select>
+                      Request Resubmission
+                    </button>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-white/50 block">Required Advance (₹)</label>
-                    <input 
-                      type="number" 
-                      placeholder="Manual Entry"
-                      value={requiredAdvance}
-                      onChange={e => setRequiredAdvance(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-emerald-400 outline-none focus:border-emerald-500 font-mono font-bold"
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="text"
+                      placeholder="Reason for Rejection..."
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      className="bg-[#111] border border-white/10 p-2 rounded text-xs text-white outline-none focus:border-red-500"
                     />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!rejectionReason) return alert('Reason required');
+                        setIsUpdatingRequest(true);
+                        await updateEnquiryStatusAction(initialEnquiry.id, 'REJECTED', undefined, undefined, undefined, undefined);
+                        await addEnquiryCommentAction(initialEnquiry.id, 'System', `Rejected: ${rejectionReason}`);
+                        setIsUpdatingRequest(false);
+                        router.refresh();
+                      }}
+                      className="py-2 bg-red-600/20 hover:bg-red-600/40 text-red-500 font-bold rounded-lg text-xs transition-colors border border-red-500/20"
+                    >
+                      Reject Lead
+                    </button>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-white/50 block">Quote Expiry Date</label>
-                    <input 
-                      type="date" 
-                      value={expiresAt}
-                      onChange={e => setExpiresAt(e.target.value)}
-                      className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500"
-                    />
-                  </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs text-white/50 block">Quote Notes / Price Breakdown</label>
-                  <textarea 
-                    placeholder="e.g. Stitching: ₹5000, Fabric: ₹4000, Custom Neckline: ₹1000..."
-                    value={quoteNotes}
-                    onChange={e => setQuoteNotes(e.target.value)}
-                    rows={2}
-                    className="w-full bg-[#111] border border-white/10 rounded-lg p-2.5 text-xs text-white outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs text-white/50 block">Upload Invoice Image/PDF (Optional)</label>
-                  {initialEnquiry.quote?.invoiceUrl && (
-                    <div className="mb-1.5">
-                      <a href={initialEnquiry.quote.invoiceUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-400 hover:underline">
-                        📄 View current invoice attachment ↗
-                      </a>
-                    </div>
-                  )}
-                  <input 
-                    type="file" 
-                    onChange={e => setInvoiceFile(e.target.files?.[0] || null)}
-                    className="w-full text-xs text-white/60 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* PAYMENT RECEIPT UPLOAD (Only if ready for order) */}
-            {(reviewStatus === 'PAYMENT_VERIFIED' || reviewStatus === 'AWAITING_PAYMENT') && (
-              <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
-                <div className="space-y-1.5">
-                  <label className="text-xs text-emerald-400 font-bold block">Upload Advance Receipt Image</label>
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                    className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 text-white/70"
-                  />
-                  {initialEnquiry?.advancePaymentProofUrl && !receiptFile && (
-                    <p className="text-[10px] text-emerald-400 mt-1">Receipt already uploaded.</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-emerald-400 font-bold block">Transaction UTR (Optional)</label>
-                  <input
-                    type="text"
-                    value={formData.utrNumber || ''}
-                    onChange={(e) => setFormData({...formData, utrNumber: e.target.value})}
-                    placeholder="Enter 12-digit UTR"
-                    className="w-full bg-[#111] border border-emerald-500/30 rounded p-2.5 text-xs text-white outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleUpdateRequestStatus}
-              disabled={isUpdatingRequest}
-              className="col-span-1 md:col-span-2 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors shadow disabled:opacity-50"
-            >
-              {isUpdatingRequest ? 'Updating Enquiry...' : 'Update Enquiry Status, Quote & Assignment'}
-            </button>
-          </div>
+              )}
+            </div>
           )}
 
           {/* CUSTOMER RESPONSE TRACKING */}
@@ -706,306 +775,26 @@ Thank you for shopping with us!`;
         </div>
       )}
 
-      {/* ORDER CONVERSION / CREATION FORM */}
-      {initialEnquiry?.status !== 'CONVERTED' && (
-      <form onSubmit={handleSubmit} className="bg-[#111] p-4 rounded-xl border border-white/10 space-y-4">
-        {/* HEADER FOR NEW ORDER */}
-        <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-          <h2 className="text-xl font-bold text-white">New Order</h2>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.origin + '/order');
-              alert('Customer Intake Form Link copied to clipboard! Share this link with customers so they can fill out their details and measurements.');
-            }}
-            className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded transition-colors flex items-center gap-2 border border-zinc-700"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-            Copy External Intake Link
-          </button>
-        </div>
-
-        {/* SECTION 1: CUSTOMER */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold border-b border-white/10 pb-2">1. Customer & Source</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input 
-              required 
-              placeholder="Phone Number *" 
-              value={formData.phone}
-              onChange={e => setFormData({...formData, phone: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            />
-            <input 
-              required 
-              placeholder="Full Name *" 
-              value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            />
-            <select 
-              required
-              value={formData.source}
-              onChange={e => setFormData({...formData, source: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            >
-              <option value="WALK_IN">Walk-In</option>
-              <option value="WHATSAPP">WhatsApp</option>
-              <option value="INSTAGRAM">Instagram</option>
-              <option value="WEBSITE">Website</option>
-              <option value="REFERRAL">Referral</option>
-              <option value="EXISTING_CUSTOMER">Existing Customer</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input 
-              placeholder="Email Address (Optional)" 
-              value={formData.email}
-              onChange={e => setFormData({...formData, email: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            />
-            <input 
-              placeholder="Delivery Address (Optional)" 
-              value={formData.address}
-              onChange={e => setFormData({...formData, address: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            />
-          </div>
-        </div>
-
-        {/* SECTION 2: ORDER TYPE & PRODUCTS */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center border-b border-white/10 pb-2">
-            <h3 className="text-lg font-bold">2. Products & Details</h3>
+      {/* WALK-IN PROMPT (Shown when no enquiry selected) */}
+      {!initialEnquiry && (
+        <div className="bg-[#111] p-8 rounded-xl border border-white/10 text-center space-y-4 mt-8">
+          <h2 className="text-xl font-bold text-white">No Customer Enquiry Selected</h2>
+          <p className="text-white/60 text-sm">Select an enquiry from the queue on the left to review it.</p>
+          <div className="pt-6 border-t border-white/10 mt-6 max-w-sm mx-auto">
+            <p className="text-white/60 text-sm mb-4">Need to enter a walk-in order?</p>
             <button
               type="button"
-              onClick={() => setFormData({
-                ...formData, 
-                lineItems: [...formData.lineItems, { productId: '', name: '', quantity: 1, price: '' }]
-              })}
-              className="text-xs bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 px-3 py-1.5 rounded-lg transition-colors border border-emerald-500/20 font-bold"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.origin + '/order');
+                alert('Customer Intake Form Link copied to clipboard! Open this link in a new tab to submit a walk-in order.');
+              }}
+              className="w-full text-sm bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-6 rounded-lg transition-colors border border-zinc-700 flex items-center justify-center gap-2"
             >
-              + Add Product
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              Copy External Intake Link
             </button>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select 
-              required
-              value={formData.orderType}
-              onChange={e => setFormData({...formData, orderType: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            >
-              <option value="READY_MADE">Ready Product</option>
-              <option value="CUSTOM_STITCHING">Custom Stitching</option>
-              <option value="FABRIC_STITCHING">Fabric + Stitching</option>
-              <option value="ALTERATION">Alteration</option>
-            </select>
-          </div>
-
-          {/* Line Items List */}
-          <div className="space-y-3">
-            {formData.lineItems.map((item, index) => (
-              <div key={index} className="flex items-center gap-2 bg-[#222] border border-white/5 p-2 rounded-lg">
-                <input
-                  required
-                  placeholder="Product Name (e.g. Lehenga)"
-                  value={item.name}
-                  onChange={(e) => {
-                    const newItems = [...formData.lineItems];
-                    newItems[index].name = e.target.value;
-                    setFormData({...formData, lineItems: newItems});
-                  }}
-                  className="flex-1 bg-[#111] border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
-                />
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  placeholder="Qty"
-                  value={item.quantity}
-                  onChange={(e) => {
-                    const newItems = [...formData.lineItems];
-                    newItems[index].quantity = parseInt(e.target.value) || 1;
-                    setFormData({...formData, lineItems: newItems});
-                  }}
-                  className="w-20 bg-[#111] border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
-                />
-                <input
-                  type="number"
-                  placeholder="Price (₹)"
-                  value={item.price}
-                  onChange={(e) => {
-                    const newItems = [...formData.lineItems];
-                    newItems[index].price = e.target.value;
-                    setFormData({...formData, lineItems: newItems});
-                  }}
-                  className="w-28 bg-[#111] border border-white/10 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
-                />
-                {formData.lineItems.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newItems = formData.lineItems.filter((_, i) => i !== index);
-                      setFormData({...formData, lineItems: newItems});
-                    }}
-                    className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {formData.orderType !== 'READY_MADE' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[#1a1a1a] border border-white/5 rounded-lg">
-              <select 
-                value={formData.fabricSource}
-                onChange={e => setFormData({...formData, fabricSource: e.target.value})}
-                className="bg-[#222] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-              >
-                <option value="NONE">No Fabric Needed</option>
-                <option value="CUSTOMER">Customer Provided Fabric</option>
-                <option value="DEEPRASTORE">Deeprastore Fabric</option>
-              </select>
-              
-              {formData.fabricSource === 'CUSTOMER' && (
-                <input 
-                  placeholder="Fabric Count (e.g. 2.5m)" 
-                  value={formData.fabricCount}
-                  onChange={e => setFormData({...formData, fabricCount: e.target.value})}
-                  className="bg-[#222] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-                />
-              )}
-              
-              {formData.fabricSource === 'DEEPRASTORE' && (
-                <input 
-                  placeholder="Fabric/Product Code" 
-                  value={formData.fabricCode}
-                  onChange={e => setFormData({...formData, fabricCode: e.target.value})}
-                  className="bg-[#222] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-                />
-              )}
-            </div>
-          )}
         </div>
-
-        {/* SECTION 3: MEASUREMENTS */}
-        {formData.orderType !== 'READY_MADE' && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold border-b border-white/10 pb-2">3. Measurements</h3>
-            <select 
-              value={formData.measurementStatus}
-              onChange={e => setFormData({...formData, measurementStatus: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            >
-              <option value="USE_EXISTING">Use Existing Measurements</option>
-              <option value="TAKE_NEW">Take New Measurements</option>
-              <option value="PENDING">Pending / Update Later</option>
-              <option value="BOOK_PHOTO_UPLOADED">Upload Measurement Book Photo</option>
-            </select>
-          </div>
-        )}
-
-        {/* SECTION 4: FINANCE & DATES */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold border-b border-white/10 pb-2">4. Payment & Dates</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input 
-              required type="number" placeholder="Total Amount (₹)" 
-              value={formData.totalAmount} onChange={e => setFormData({...formData, totalAmount: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            />
-            <input 
-              type="number" placeholder="Advance Received (₹)" 
-              value={formData.advanceAmount} onChange={e => setFormData({...formData, advanceAmount: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            />
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full text-white/50 flex items-center justify-between">
-              <span>Balance:</span>
-              <span className="font-bold text-white">₹{formData.balanceAmount}</span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select 
-              value={formData.paymentMethod}
-              onChange={e => setFormData({...formData, paymentMethod: e.target.value})}
-              className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-            >
-              <option value="PENDING">Pending</option>
-              <option value="CASH">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
-            </select>
-            
-            {(formData.paymentMethod === 'UPI' || formData.paymentMethod === 'BANK_TRANSFER') && (
-              <input 
-                required placeholder="UTR / Transaction ID" 
-                value={formData.utrNumber} onChange={e => setFormData({...formData, utrNumber: e.target.value})}
-                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-              />
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs text-white/50">Order Date</label>
-              <input 
-                type="date"
-                value={formData.orderDate} onChange={e => setFormData({...formData, orderDate: e.target.value})}
-                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-white/50">Delivery Date</label>
-              <input 
-                type="date"
-                value={formData.deliveryDate} onChange={e => setFormData({...formData, deliveryDate: e.target.value})}
-                className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 5: ATTACHMENTS & NOTES */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold border-b border-white/10 pb-2">5. Attachments & Notes</h3>
-          
-          {existingAttachments.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto mb-2">
-              {existingAttachments.map((url, i) => (
-                <img key={i} src={url} alt="Enquiry" className="h-16 w-16 object-cover rounded" />
-              ))}
-            </div>
-          )}
-
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-lg p-4">
-            <label className="text-sm font-medium text-white mb-2 block">Upload Attachments (Max 20)</label>
-            <p className="text-xs text-white/40 mb-4">Reference Images, Measurement Photos, Fabric Photos, UPI Screenshots</p>
-            <input 
-              type="file" multiple accept="image/*"
-              onChange={(e) => setFiles(Array.from(e.target.files || []))}
-              className="w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20"
-            />
-          </div>
-
-          <textarea 
-            rows={3} placeholder="Notes for Master Ji (e.g. Deep neck, extra lining...)" 
-            value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}
-            className="bg-[#1a1a1a] border border-white/10 rounded-lg p-2.5 text-sm w-full"
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={isSubmitting}
-          className="w-full bg-[#059669] hover:bg-[#047857] text-white font-bold py-4 rounded-xl shadow-lg disabled:opacity-50"
-        >
-          {isSubmitting ? 'Processing...' : 'Create Order'}
-        </button>
-      </form>
       )}
     </div>
   );

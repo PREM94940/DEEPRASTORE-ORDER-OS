@@ -46,6 +46,8 @@ export async function submitEnquiryAction(data: any) {
       referenceImages: data.referenceImages || [],
       designImages: data.designImages || [],
       advancePaymentProofUrl: data.advancePaymentProofUrl || null,
+      utr: data.utr || null,
+      websiteOrderId: data.websiteOrderId || null,
       status: 'REQUEST',
     });
 

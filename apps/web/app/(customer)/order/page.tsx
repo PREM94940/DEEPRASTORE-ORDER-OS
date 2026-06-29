@@ -98,21 +98,32 @@ function OrderRequestPortalForm() {
       }
 
       // Construct rich notes
-      let richNotes = formData.notes || '';
-      if (formData.productName) richNotes = `Product Name: ${formData.productName}\n` + richNotes;
-      if (formData.productCode) richNotes = `Product Code: ${formData.productCode}\n` + richNotes;
-      if (formData.source === 'WEBSITE' && formData.websiteOrderId) richNotes = `Website Order ID: ${formData.websiteOrderId}\n` + richNotes;
-      if (formData.paymentUtr) richNotes = `Payment UTR: ${formData.paymentUtr}\n` + richNotes;
-      if (formData.advanceAmount) richNotes = `Advance Amount: ₹${formData.advanceAmount}\n` + richNotes;
+      let metadata: string[] = [];
+      let finalNotes = formData.notes || '';
+      if (formData.productName) metadata.push(`Product Name: ${formData.productName}`);
+      if (formData.productCode) metadata.push(`Product Code: ${formData.productCode}`);
+      if (formData.advanceAmount) metadata.push(`Advance Amount: ₹${formData.advanceAmount}`);
+      
+      if (metadata.length > 0) {
+        finalNotes = metadata.join('\n') + (finalNotes ? '\n\n' + finalNotes : '');
+      }
 
       // 4. Submit Enquiry
       const result = await submitEnquiryAction({
-        ...formData,
-        notes: richNotes,
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        source: formData.source,
+        productType: formData.productType,
+        deliveryDate: formData.deliveryDate,
+        notes: finalNotes,
+        measurements,
         referenceImages: refUrls,
         designImages: designUrls,
-        advancePaymentProofUrl: paymentProofUrl,
-        measurements,
+        utr: formData.paymentUtr,
+        websiteOrderId: formData.websiteOrderId,
+        advancePaymentProofUrl: paymentProofUrl
       });
 
       if (result.success && result.enquiryNumber && result.trackingToken) {
