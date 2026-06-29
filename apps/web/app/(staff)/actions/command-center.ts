@@ -60,6 +60,7 @@ export async function moveDispatchOrderAction(
     revalidatePath('/production');
     revalidatePath('/dispatch');
     revalidatePath('/payments');
+    revalidatePath('/payments');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -75,6 +76,15 @@ export async function dispatchOrderAction(
   const tenantId = '11111111-1111-1111-1111-111111111111';
 
   try {
+    const order = await orderRepo.getOrderById(tenantId, orderId);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
+    if (Number(order.balanceAmount) > 0) {
+      throw new Error("Cannot dispatch order. Balance amount is pending.");
+    }
+
     await orderRepo.updateOrderDispatchStatusWithAudit(
       null,
       tenantId,

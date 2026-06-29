@@ -1,29 +1,352 @@
-# Deeprastore Order OS - System-wide Operational Rules
+# DEEPRASTORE AI OPERATING SYSTEM (DAOS)
 
-This directory defines the operational directives for the Deeprastore Order OS. Every AI agent, developer, and script operating on this repository must adhere to these rules.
-
----
-
-## 1. Project Philosophy & Focus
-The sole objective of this system is **preventing order loss, eliminating WhatsApp dependency, and enabling boutique staff to run operations entirely inside a clean system**.
-*   **No CRM/ERP Bloat:** Do not build advanced CRM features, marketing engines, campaigns, or loyalty tiers.
-*   **No Website Features:** Storefront, lookbook, and public website features are strictly out of scope.
-*   **Clean starting counts:** Test data is completely wiped; keep the database clear of mock records.
+> **DAOS Constitution**
+> **Version:** 1.0
+> **Last Updated:** 2026-06-29
+>
+> **Purpose:** This document is the permanent operating system for Deeprastore Order OS. Every AI (AG, ChatGPT, Gemini, Claude, Codex or future models) must follow these rules before performing any task.
 
 ---
 
-## 2. P0: Order Ingestion & Lifecycle Rules
-1.  **Frictionless Ingestion:** Order creation must take under 30 seconds. The only required fields are **Customer Name**, **Phone Number**, **Category**, and **Amount**. All other inputs (measurements, dates, fabric codes) are optional on creation.
-2.  **Canonical Status Workflow:** Every order progresses through a single, linear lifecycle status in `orders.status`:
-    `DRAFT` -> `PENDING_VERIFICATION` -> `PAYMENT_REJECTED` / `CONFIRMED` -> `CUTTING` -> `STITCHING` -> `FINISHING` -> `QC` -> `READY` -> `PACKING` -> `DISPATCHED` -> `DELIVERED`
-3.  **Bypass Prevention (Gatekeeper):** Enforce strict server-side validation. An order **cannot** enter `CUTTING`, `STITCHING`, `FINISHING`, `QC`, or `READY` unless its `paymentStatus` is `VERIFIED`. Block any unauthorized status transitions and output: *"Payment must be verified before production can begin."*
-4.  **Payment Rejection:** If a payment is rejected, transition status to `PAYMENT_REJECTED` (do not cancel the order automatically). This preserves the order in the system, allowing the customer to re-upload a screenshot.
+# 1. CORE PRINCIPLE
+
+The purpose of Deeprastore Order OS is simple:
+
+* Prevent order loss.
+* Reduce founder workload.
+* Reduce staff mistakes.
+* Reduce WhatsApp dependency.
+* Improve production visibility.
+* Keep operations simple.
+
+If a task does not improve one of these goals, **do not build it.**
 
 ---
 
-## 3. P1: Staff Interfaces & Execution Rules
-1.  **Tabbed Orders View:** The main orders page (`OperationsGrid`) must group orders into five lifecycle tabs: `Drafts`, `Pending Verification`, `Active Production`, `Ready & Packing`, and `Completed`.
-2.  **Isolated Production Screen:** Production staff must only access the active stages (`CUTTING`, `STITCHING`, `QC`, `READY`). Financial and customer details must be hidden on this view.
-3.  **Strict Dispatch Requirements:** Moving an order to `Dispatched` requires **Courier Name** and **Tracking ID**. Prevent movement and alert staff if missing.
-4.  **Customer360 Drawer:** Keep Customer360 in the slide-out drawer format. Remove all mock risk/loyalty ranks. Display only Name, Phone, City, Measurements, Orders, Payments, and Notes.
-5.  **Category Measurements:** Group measurement forms into Lehenga (Waist, Hip, Length), Blouse (Bust, Underbust, Waist, Sleeve, Armhole, Back Neck), and Kurta (Shoulder, Chest, Waist, Hip, Sleeve, Length). These measurements belong to the customer record and must auto-fill future orders.
+# 2. BUSINESS FIRST
+
+Before implementing anything, answer:
+
+1. What real business problem exists?
+2. Who experienced it?
+3. How often?
+4. What is the operational or financial impact?
+5. Can the pilot continue without solving it?
+
+If these cannot be answered:
+
+**Status = IDEA**
+
+Do not implement.
+
+---
+
+# 3. SIMPLICITY FIRST
+
+Always prefer:
+
+Existing Code
+→ Existing Configuration
+→ Existing Capability
+→ Existing Documentation
+→ New Code (Last Option)
+
+Never create new systems when an existing one can solve the problem.
+
+Complexity must always be justified.
+
+---
+
+# 4. PILOT PROTECTION
+
+During an active pilot:
+
+### Allowed
+
+* Bug fixes
+* Data integrity fixes
+* Mobile usability
+* Notifications
+* Security fixes
+* Production blockers
+* Documentation
+* Browser QA
+
+### Not Allowed
+
+* New architecture
+* Database redesign
+* Workflow redesign
+* Dashboard redesign
+* ERP/CRM expansion
+* Experimental features
+
+Unless explicitly approved by the Founder.
+
+---
+
+# 5. ORDER STATE PROTECTION
+
+The business workflow is protected.
+
+No UI, API, automation, or AI may bypass business rules.
+
+Example:
+
+Payment Verified
+
+↓
+
+Production
+
+↓
+
+QC
+
+↓
+
+Ready
+
+↓
+
+Dispatch
+
+↓
+
+Delivered
+
+Every transition must be validated on the server.
+
+---
+
+# 6. FOUNDER AUTHORITY
+
+The Founder always has final authority.
+
+AI may:
+
+* Recommend
+* Analyze
+* Design
+* Review
+
+AI may never override Founder decisions.
+
+---
+
+# 7. CAPABILITY FIRST
+
+Before creating new code, determine the best capability.
+
+Business Problem
+→ Business Specialist
+
+Frontend
+→ UI/UX Specialist
+
+Backend
+→ Systems Engineer
+
+Database
+→ Database Administrator
+
+Security
+→ Security Auditor
+
+Browser Testing
+→ Browser QA
+
+Architecture
+→ Architecture Reviewer
+
+Deployment
+→ Release Manager
+
+Do not use large agent swarms for small tasks.
+
+---
+
+# 8. EVIDENCE REQUIRED
+
+A task is not complete until evidence is provided.
+
+Minimum evidence:
+
+* Files changed
+* Commands executed
+* Build result
+* Runtime result
+* Browser verification (if UI)
+* Known limitations
+
+Claims without evidence are treated as incomplete.
+
+---
+
+# 9. DEPLOYMENT GATE
+
+Nothing reaches production unless all are PASS:
+
+✓ TypeScript
+
+✓ Production Build
+
+✓ Runtime Verification
+
+✓ Browser QA
+
+✓ Security Review
+
+✓ Regression Review
+
+✓ Founder Approval
+
+If one fails:
+
+NO DEPLOYMENT.
+
+---
+
+# 10. LIVE ENVIRONMENT DECLARATION
+
+Every report must begin with:
+
+ENVIRONMENT
+
+LIVE
+
+LOCAL
+
+EXPERIMENTAL
+
+ABANDONED
+
+STATUS
+
+Never mix environments.
+
+Always clearly identify what is actually deployed.
+
+---
+
+# 11. REGRESSION RULE
+
+Every implementation must state:
+
+Added
+
+Modified
+
+Removed
+
+Untouched
+
+Possible Risks
+
+Rollback Plan
+
+No hidden changes.
+
+---
+
+# 12. CLEANUP POLICY
+
+Never permanently delete first.
+
+Move unused work into a governed archive.
+
+Every cleanup requires:
+
+* Rollback path
+* Founder approval
+* Evidence
+
+---
+
+# 13. FOUNDER TIME RULE
+
+Every feature must answer:
+
+Will it reduce founder work?
+
+Will it reduce staff work?
+
+Will it reduce customer confusion?
+
+Will it reduce WhatsApp dependency?
+
+Will it reduce operational mistakes?
+
+If the answer is NO,
+
+do not build it.
+
+---
+
+# 14. PROJECT PRIORITY
+
+Always work in this order:
+
+1. Orders
+2. Payments
+3. Production
+4. Dispatch
+5. Customer Tracking
+6. Notifications
+7. Reports
+8. Everything Else
+
+Never allow lower priorities to delay higher priorities.
+
+---
+
+# GOLDEN RULE
+
+The Constitution governs behaviour.
+
+It does NOT govern technology.
+
+Models may change.
+
+Tools may change.
+
+Skills may change.
+
+Agents may change.
+
+The business rules never change.
+
+Build less.
+
+Verify more.
+
+Ship only what solves real business problems.
+
+---
+
+# 15. CHANGE ISOLATION
+
+Before reverting any modified file:
+
+1. Compare against LIVE.
+2. Identify independent logical changes.
+3. Revert only the rejected changes.
+4. Preserve approved fixes.
+
+Whole-file reverts require founder approval.
+
+
+---
+
+# 16. LIVE BASELINE CLEANUP
+
+The deployed GitHub/Vercel version is the canonical baseline.
+
+Repository cleanup must restore the workspace to that baseline.
+
+No cleanup operation may remove code that exists in the LIVE baseline.
+
+Experimental, abandoned, temporary, generated, or incomplete work may be removed or parked only after comparison against LIVE.
+
+The objective is a clean repository that exactly represents the approved system plus explicitly approved future work.
+

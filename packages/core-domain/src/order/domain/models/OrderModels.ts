@@ -4,6 +4,7 @@ export interface Order {
   customerId: string | null;
   status: string;
   totalAmount: number | null;
+  balanceAmount: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
