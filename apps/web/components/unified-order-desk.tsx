@@ -565,7 +565,7 @@ Thank you for shopping with us!`;
                         <button
                           className="text-emerald-400 hover:text-emerald-300 text-[10px] uppercase font-bold py-1 w-full text-center border border-dashed border-emerald-500/30 rounded mt-2"
                           onClick={() => {
-                            setFormData({...formData, lineItems: [...formData.lineItems, { productId: '', name: '', code: '', quantity: 1, price: '' }]});
+                            setFormData({...formData, lineItems: [...formData.lineItems, { productId: '', name: '', quantity: 1, price: '' }]});
                           }}
                         >
                           + Add Item

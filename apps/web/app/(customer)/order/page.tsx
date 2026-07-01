@@ -226,13 +226,13 @@ function OrderRequestPortalForm() {
         advanceAmount: advancePaid
       });
 
-      if (result.success && result.enquiryNumber && result.trackingToken) {
+      if (result.success) {
         setSuccessData({
-          enquiryNumber: result.enquiryNumber,
-          trackingToken: result.trackingToken,
+          enquiryNumber: result.enquiryNumber!,
+          trackingToken: result.trackingToken!
         });
       } else {
-        alert(`Failed to submit request. Error: ${result.error || 'Unknown server error'}`);
+        alert(`Failed to submit request. Error: ${('error' in result ? result.error : 'Unknown server error')}`);
       }
     } catch (err) {
       console.error('Submit Exception:', err);
