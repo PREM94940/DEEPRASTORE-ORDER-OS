@@ -297,6 +297,11 @@ export function UnifiedOrderDesk({
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Yield to the browser's event loop so React can paint the "isSubmitting" state 
+    // and disable the button immediately, preventing the UI from freezing (INP issue)
+    // while the heavy Server Action payload is serialized.
+    await new Promise(resolve => setTimeout(resolve, 10));
+
     try {
       // 1. Upload Attachments
       let newAttachments: { url: string; type: string }[] = existingAttachments.map(url => ({ url, type: 'enquiry_image' }));
