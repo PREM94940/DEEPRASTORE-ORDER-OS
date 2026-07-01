@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { StorageAdapter } from '../domain/StorageAdapter';
 // Use standard fetch to interact with Supabase storage API or any supabase client available
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Package, Truck, AlertCircle, Phone, ArrowRight, ShieldAlert, Clock, Info } from 'lucide-react';
+import { Package, Truck, AlertCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { fetchCustomerOrdersAction } from '../actions/portal';
 

@@ -21,6 +21,7 @@ export interface ParsedEnquiryMetadata {
   advanceAmount: string;
   websiteOrderId: string;
   utr: string;
+  orderDate: string;
   cleanNotes: string;
 }
 
@@ -31,6 +32,7 @@ export function parseLegacyEnquiryNotes(enquiryId: string, rawNotes: string | nu
     advanceAmount: '',
     websiteOrderId: '',
     utr: '',
+    orderDate: '',
     cleanNotes: rawNotes || ''
   };
 
@@ -60,6 +62,8 @@ export function parseLegacyEnquiryNotes(enquiryId: string, rawNotes: string | nu
       result.websiteOrderId = line.replace('Website Order ID: ', '').trim();
     } else if (line.startsWith('Payment UTR: ')) {
       result.utr = line.replace('Payment UTR: ', '').trim();
+    } else if (line.startsWith('Order Date: ')) {
+      result.orderDate = line.replace('Order Date: ', '').trim();
     } else {
       unparsedLines.push(line);
     }

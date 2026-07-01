@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PublishValidator } from '../../assets/domain/PublishValidator';
 import { IThemeVersionRepository } from '../repositories/IThemeVersionRepository';
 

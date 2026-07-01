@@ -21,6 +21,7 @@ function OrderRequestPortalForm() {
     notes: '',
     deliveryDate: '',
     address: '',
+    orderDate: new Date().toISOString().split('T')[0],
   });
 
   // Category Measurements Form State
@@ -103,6 +104,7 @@ function OrderRequestPortalForm() {
       if (formData.productName) metadata.push(`Product Name: ${formData.productName}`);
       if (formData.productCode) metadata.push(`Product Code: ${formData.productCode}`);
       if (formData.advanceAmount) metadata.push(`Advance Amount: ₹${formData.advanceAmount}`);
+      if (formData.orderDate) metadata.push(`Order Date: ${formData.orderDate}`);
       
       if (metadata.length > 0) {
         finalNotes = metadata.join('\n') + (finalNotes ? '\n\n' + finalNotes : '');
@@ -118,6 +120,7 @@ function OrderRequestPortalForm() {
         productType: formData.productType,
         deliveryDate: formData.deliveryDate,
         notes: finalNotes,
+        orderDate: formData.orderDate,
         measurements,
         referenceImages: refUrls,
         designImages: designUrls,
@@ -277,7 +280,18 @@ function OrderRequestPortalForm() {
           {/* SECTION 2: DESIGN & PRODUCT */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold border-b border-white/10 pb-2 text-white/90">2. Custom Stitching Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Order Date *</label>
+                <input 
+                  required
+                  type="date" 
+                  value={formData.orderDate}
+                  onChange={(e) => setFormData({...formData, orderDate: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-emerald-600 transition-colors" 
+                />
+              </div>
               <div className="space-y-2">
                 <label className="text-xs text-white/60 uppercase tracking-wider font-semibold">Product Type *</label>
                 <select 

@@ -47,6 +47,7 @@ export function UnifiedOrderDesk({
     balanceAmount: 0,
     paymentMethod: 'PENDING',
     utrNumber: '',
+    measurements: null as any,
     
     // Dates & Notes
     orderDate: safeDate(new Date().toISOString()),
@@ -60,8 +61,10 @@ export function UnifiedOrderDesk({
   // Existing uploaded images from enquiry
   const [existingAttachments, setExistingAttachments] = useState<string[]>([
     ...(Array.isArray(initialEnquiry?.referenceImages) ? initialEnquiry.referenceImages : []),
-    ...(Array.isArray(initialEnquiry?.designImages) ? initialEnquiry.designImages : [])
+    ...(Array.isArray(initialEnquiry?.designImages) ? initialEnquiry.designImages : []),
+    ...(Array.isArray(initialEnquiry?.attachments) ? initialEnquiry.attachments.map((a: any) => a.url) : [])
   ]);
+  const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successReceipt, setSuccessReceipt] = useState<any>(null);
   const [reviewAssignedTo, setReviewAssignedTo] = useState(initialEnquiry?.assignedTo || '');
@@ -96,8 +99,11 @@ export function UnifiedOrderDesk({
       setReceiptFile(null);
       setExistingAttachments([
         ...(Array.isArray(initialEnquiry.referenceImages) ? initialEnquiry.referenceImages : []),
-        ...(Array.isArray(initialEnquiry.designImages) ? initialEnquiry.designImages : [])
+        ...(Array.isArray(initialEnquiry.designImages) ? initialEnquiry.designImages : []),
+        ...(Array.isArray(initialEnquiry.attachments) ? initialEnquiry.attachments.map((a: any) => a.url) : [])
       ]);
+      setNewAttachments([]);
+      setIsEditing(false);
 
       setFormData(prev => ({
         ...prev,
@@ -110,6 +116,7 @@ export function UnifiedOrderDesk({
         orderType: initialEnquiry.productType ? 'CUSTOM_STITCHING' : 'READY_MADE',
         productDetails: initialEnquiry.productType || '',
         notes: initialEnquiry.notes || '',
+        measurements: initialEnquiry.measurements || null,
       }));
 
       // Sync quote values
@@ -147,6 +154,7 @@ export function UnifiedOrderDesk({
         source: initialEnquiry.source || 'WALK_IN',
         orderType: 'CUSTOM_STITCHING',
         productDetails: initialEnquiry.productType || '',
+        measurements: initialEnquiry.measurements || null,
         lineItems: [{ 
           productId: '', 
           name: parsedData.productName || initialEnquiry.productType || 'Custom Product', 
@@ -159,6 +167,7 @@ export function UnifiedOrderDesk({
         totalAmount: initialEnquiry.quote?.quoteAmount || '',
         advanceAmount: parsedData.advanceAmount || initialEnquiry.quote?.requiredAdvance || '',
         utrNumber: parsedData.utr || initialEnquiry.utr || '',
+        orderDate: parsedData.orderDate || safeDate(initialEnquiry.createdAt),
         basePrice: initialEnquiry.quote?.basePrice || '',
         discountAmount: initialEnquiry.quote?.discountAmount || '',
         deliveryAmount: initialEnquiry.quote?.deliveryAmount || '',
@@ -203,7 +212,7 @@ export function UnifiedOrderDesk({
         currentInvoiceUrl = uploads[0]?.publicUrl;
       }
 
-      if (reviewStatus === 'PAYMENT_VERIFIED') {
+      if (reviewStatus === 'PAYMENT_VERIFIED' || reviewStatus === 'ORDER_CREATED') {
         // First update the enquiry quote data if needed
         await updateEnquiryStatusAction(
           initialEnquiry.id,
@@ -513,32 +522,83 @@ Thank you for shopping with us!`;
             <div className="space-y-4">
               <div>
                 <span className="text-xs text-white/40 block mb-1">Measurements Submitted</span>
-                {initialEnquiry.measurements ? (
-                  <div className="bg-white/5 p-2.5 rounded border border-white/5 font-mono text-xs text-white/80 space-y-1">
-                    {initialEnquiry.measurements.lehenga && (
-                      <div>📐 Lehenga — Waist: {initialEnquiry.measurements.lehenga.waist}, Hip: {initialEnquiry.measurements.lehenga.hip}, Length: {initialEnquiry.measurements.lehenga.length}</div>
-                    )}
-                    {initialEnquiry.measurements.blouse && (
-                      <div>📐 Blouse — Bust: {initialEnquiry.measurements.blouse.bust}, Underbust: {initialEnquiry.measurements.blouse.underbust}, Waist: {initialEnquiry.measurements.blouse.waist}, Sleeve: {initialEnquiry.measurements.blouse.sleeve}, Armhole: {initialEnquiry.measurements.blouse.armhole}, BackNeck: {initialEnquiry.measurements.blouse.backNeck}</div>
-                    )}
-                    {initialEnquiry.measurements.kurta && (
-                      <div>📐 Kurta — Shoulder: {initialEnquiry.measurements.kurta.shoulder}, Chest: {initialEnquiry.measurements.kurta.chest}, Waist: {initialEnquiry.measurements.kurta.waist}, Hip: {initialEnquiry.measurements.kurta.hip}, Sleeve: {initialEnquiry.measurements.kurta.sleeve}, Length: {initialEnquiry.measurements.kurta.length}</div>
-                    )}
+                {isEditing ? (
+                  <div>
+                    <textarea 
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded p-2 text-xs font-mono text-white outline-none focus:border-emerald-600"
+                      rows={5}
+                      value={formData.measurements ? JSON.stringify(formData.measurements, null, 2) : ''}
+                      onChange={(e) => {
+                        try {
+                          const parsed = e.target.value ? JSON.parse(e.target.value) : null;
+                          setFormData({...formData, measurements: parsed});
+                        } catch (err) {
+                          // Allow invalid json during typing, but keep the raw string to not lose keystrokes
+                          setFormData({...formData, measurements: e.target.value as any});
+                        }
+                      }}
+                      placeholder='{"lehenga": {"waist": "32", "hip": "38", "length": "40"}}'
+                    />
+                    <span className="text-[10px] text-yellow-500/80 block mt-1">Edit measurements in JSON format.</span>
                   </div>
                 ) : (
-                  <span className="text-xs text-white/30 italic block">None provided</span>
+                  <>
+                    {initialEnquiry.measurements ? (
+                      <div className="bg-white/5 p-2.5 rounded border border-white/5 font-mono text-xs text-white/80 space-y-1">
+                        {initialEnquiry.measurements.lehenga && (
+                          <div>📐 Lehenga — Waist: {initialEnquiry.measurements.lehenga.waist}, Hip: {initialEnquiry.measurements.lehenga.hip}, Length: {initialEnquiry.measurements.lehenga.length}</div>
+                        )}
+                        {initialEnquiry.measurements.blouse && (
+                          <div>📐 Blouse — Bust: {initialEnquiry.measurements.blouse.bust}, Underbust: {initialEnquiry.measurements.blouse.underbust}, Waist: {initialEnquiry.measurements.blouse.waist}, Sleeve: {initialEnquiry.measurements.blouse.sleeve}, Armhole: {initialEnquiry.measurements.blouse.armhole}, BackNeck: {initialEnquiry.measurements.blouse.backNeck}</div>
+                        )}
+                        {initialEnquiry.measurements.kurta && (
+                          <div>📐 Kurta — Shoulder: {initialEnquiry.measurements.kurta.shoulder}, Chest: {initialEnquiry.measurements.kurta.chest}, Waist: {initialEnquiry.measurements.kurta.waist}, Hip: {initialEnquiry.measurements.kurta.hip}, Sleeve: {initialEnquiry.measurements.kurta.sleeve}, Length: {initialEnquiry.measurements.kurta.length}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-white/30 italic block">None provided</span>
+                    )}
+                  </>
                 )}
-                <span className="text-[10px] text-white/50 block mt-1">(Measurement editing not supported inline yet)</span>
               </div>
 
               <div>
                 <span className="text-xs text-white/40 block mb-1">Customer Uploaded Attachments</span>
+                
+                {isEditing && (
+                  <div className="mb-4 space-y-2">
+                    <label className="text-xs text-emerald-400 font-semibold uppercase block">Add New Attachments</label>
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*"
+                      onChange={(e) => setNewAttachments(Array.from(e.target.files || []))}
+                      className="w-full text-xs text-white/60 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20 transition-colors bg-[#1a1a1a] border border-white/10 rounded p-1 outline-none"
+                    />
+                    {newAttachments.length > 0 && (
+                      <span className="text-[10px] text-white/60">{newAttachments.length} new files selected</span>
+                    )}
+                  </div>
+                )}
+
                 {existingAttachments.length > 0 ? (
                   <div className="grid grid-cols-4 gap-2">
                     {existingAttachments.map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noreferrer" className="block relative aspect-square rounded overflow-hidden border border-white/10 hover:border-white/30 transition-colors">
-                        <img src={url} alt="Attachment" className="object-cover w-full h-full opacity-80 hover:opacity-100" />
-                      </a>
+                      <div key={i} className="block relative aspect-square rounded overflow-hidden border border-white/10 hover:border-white/30 transition-colors group">
+                        <img src={url} alt="Attachment" className={`object-cover w-full h-full ${isEditing ? 'opacity-80' : 'opacity-80 hover:opacity-100'}`} />
+                        {isEditing && (
+                          <button 
+                            onClick={() => setExistingAttachments(existingAttachments.filter((_, idx) => idx !== i))}
+                            className="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg"
+                            title="Remove Image"
+                          >
+                            ×
+                          </button>
+                        )}
+                        {!isEditing && (
+                          <a href={url} target="_blank" rel="noreferrer" className="absolute inset-0 z-0"></a>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -627,27 +687,45 @@ Thank you for shopping with us!`;
                   {isEditing ? 'Cancel Edit' : 'Edit Details'}
                 </button>
                 {isEditing && (
-                  <button
-                    type="button"
+                  <button 
                     onClick={async () => {
-                      setIsUpdatingRequest(true);
-                      try {
-                        await updateEnquiryStatusAction(
-                          initialEnquiry.id,
-                          initialEnquiry.status,
-                          reviewAssignedTo || undefined,
-                          undefined,
-                          undefined,
-                          formData.utrNumber || undefined
-                        );
-                        alert('Details saved locally. Click Approve to finalize.');
-                        setIsEditing(false);
-                      } finally {
-                        setIsUpdatingRequest(false);
+                      const conf = confirm('Save changes to the database?');
+                      if (conf) {
+                        setIsUpdatingRequest(true);
+                        try {
+                          let finalUrls = [...existingAttachments];
+                          if (newAttachments.length > 0) {
+                            const uploads = await uploadFilesToSupabase(formData.phone, newAttachments);
+                            finalUrls = [...finalUrls, ...uploads.map(u => u.publicUrl)];
+                          }
+                          
+                          const finalAttachments = finalUrls.map(url => ({ url, type: 'enquiry_image' }));
+                          
+                          const { updateEnquiryDetailsAction } = await import('@/app/(staff)/actions/order-desk');
+                          const result = await updateEnquiryDetailsAction(initialEnquiry.id, {
+                            ...formData,
+                            attachments: finalAttachments.length > 0 ? finalAttachments : undefined
+                          });
+                          
+                          if (result.success) {
+                            alert('Details saved successfully. UI updated.');
+                            setIsEditing(false);
+                            setExistingAttachments(finalUrls);
+                            setNewAttachments([]);
+                            router.refresh();
+                          } else {
+                            alert(result.error || 'Failed to save');
+                          }
+                        } catch (e) {
+                          console.error(e);
+                          alert('Error saving details');
+                        } finally {
+                          setIsUpdatingRequest(false);
+                        }
                       }
                     }}
                     disabled={isUpdatingRequest}
-                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors shadow disabled:opacity-50"
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition-colors shadow disabled:opacity-50"
                   >
                     Save Changes
                   </button>
@@ -780,13 +858,22 @@ Thank you for shopping with us!`;
         <div className="bg-[#111] p-8 rounded-xl border border-white/10 text-center space-y-4 mt-8">
           <h2 className="text-xl font-bold text-white">No Customer Enquiry Selected</h2>
           <p className="text-white/60 text-sm">Select an enquiry from the queue on the left to review it.</p>
-          <div className="pt-6 border-t border-white/10 mt-6 max-w-sm mx-auto">
+          <div className="pt-6 border-t border-white/10 mt-6 max-w-sm mx-auto space-y-3">
             <p className="text-white/60 text-sm mb-4">Need to enter a walk-in order?</p>
             <button
               type="button"
               onClick={() => {
+                window.open('/order', '_blank');
+              }}
+              className="w-full text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-lg flex items-center justify-center gap-2"
+            >
+              New Customer Enquiry
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 navigator.clipboard.writeText(window.location.origin + '/order');
-                alert('Customer Intake Form Link copied to clipboard! Open this link in a new tab to submit a walk-in order.');
+                alert('Customer Intake Form Link copied to clipboard! Share this link with customers.');
               }}
               className="w-full text-sm bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-6 rounded-lg transition-colors border border-zinc-700 flex items-center justify-center gap-2"
             >

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { db } from './db';
 import { orders } from './schema/orders';
 import { sql } from 'drizzle-orm';

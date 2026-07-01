@@ -184,6 +184,47 @@ export async function updateEnquiryStatusAction(
   }
 }
 
+export async function updateEnquiryDetailsAction(enquiryId: string, data: any) {
+  try {
+    await requireStaffAuth();
+    
+    // We update the basic fields
+    // For legacy fields in notes (product name, code, advance, order date), we reconstruct the notes.
+    const metadata = [];
+    if (data.productName) metadata.push(`Product Name: ${data.productName}`);
+    if (data.productCode) metadata.push(`Product Code: ${data.productCode}`);
+    if (data.advanceAmount) metadata.push(`Advance Amount: ₹${data.advanceAmount}`);
+    if (data.orderDate) metadata.push(`Order Date: ${data.orderDate}`);
+    if (data.utr) metadata.push(`Payment UTR: ${data.utr}`);
+    
+    let finalNotes = data.notes || '';
+    if (metadata.length > 0) {
+      finalNotes = metadata.join('\n') + (finalNotes ? '\n\n' + finalNotes : '');
+    }
+
+    await db.update(enquiries)
+      .set({
+        customerName: data.name,
+        customerPhone: data.phone,
+        email: data.email || null,
+        address: data.address || null,
+        productType: data.productType,
+        expectedDeliveryDate: data.deliveryDate ? new Date(data.deliveryDate) : null,
+        notes: finalNotes,
+        updatedAt: new Date(),
+        measurements: data.measurements || null,
+        referenceImages: data.attachments !== undefined ? data.attachments.map((a: any) => a.url) : undefined,
+      })
+      .where(eq(enquiries.id, enquiryId));
+
+    safeRevalidatePath('/pilot/order-desk');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update enquiry details:', error);
+    return { success: false, error: 'Failed to save changes' };
+  }
+}
+
 export async function addEnquiryCommentAction(enquiryId: string, staffName: string, comment: string) {
   try {
     await db.insert(enquiryComments).values({

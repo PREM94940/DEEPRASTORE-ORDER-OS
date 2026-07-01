@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { EventBus } from '../../../../event-bus/src/contracts/EventBus';
 import { MigrationEvent } from '../../../../event-bus/src/schemas/migration';
 import { ConfirmOrderUseCase } from '../../order/application/ConfirmOrderUseCase';

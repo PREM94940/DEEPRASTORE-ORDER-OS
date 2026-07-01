@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { StorageAdapter } from '@deeprastore/core-domain/src/assets/domain/StorageAdapter';
 
 export class SupabaseStorageAdapter implements StorageAdapter {

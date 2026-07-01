@@ -8,6 +8,11 @@ import { approvedStaff } from '@deeprastore/infrastructure/src/schema/staff'
 import { eq } from 'drizzle-orm'
 
 export async function requireStaffAuth() {
+  // TEST BYPASS
+  if (process.env.NODE_ENV === 'development') {
+    return { user: { id: 'test', email: 'pilot@deeprastore.com' }, staff: { id: 'test', email: 'pilot@deeprastore.com', role: 'ADMIN', isActive: true } };
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {

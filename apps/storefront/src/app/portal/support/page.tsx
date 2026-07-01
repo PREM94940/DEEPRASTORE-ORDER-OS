@@ -95,7 +95,7 @@ function SupportRequestContent() {
                 className={`justify-start h-auto py-4 flex-col items-start gap-1 ${resolution === 'Replace' ? 'bg-indigo-600 hover:bg-indigo-700' : 'text-zinc-600'}`}
               >
                 <span className="font-bold text-base">Replacement</span>
-                <span className="text-xs font-normal opacity-80 whitespace-normal text-left">We'll ship a new piece immediately.</span>
+                <span className="text-xs font-normal opacity-80 whitespace-normal text-left">We&apos;ll ship a new piece immediately.</span>
               </Button>
               <Button 
                 variant={resolution === 'Alter' ? 'default' : 'outline'}
@@ -103,7 +103,7 @@ function SupportRequestContent() {
                 className={`justify-start h-auto py-4 flex-col items-start gap-1 ${resolution === 'Alter' ? 'bg-indigo-600 hover:bg-indigo-700' : 'text-zinc-600'}`}
               >
                 <span className="font-bold text-base">Alteration</span>
-                <span className="text-xs font-normal opacity-80 whitespace-normal text-left">Send it back, we'll fix the fit and return it.</span>
+                <span className="text-xs font-normal opacity-80 whitespace-normal text-left">Send it back, we&apos;ll fix the fit and return it.</span>
               </Button>
               <Button 
                 variant={resolution === 'Credit Note' ? 'default' : 'outline'}

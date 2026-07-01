@@ -5,13 +5,14 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "npx turbo run build",
-    "lint": "npx turbo run lint",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
     "omp": "C:\\Users\\rodda\\AppData\\Local\\omp\\omp.exe"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.1",
     "drizzle-orm": "^0.45.2",
-    "pg": "^8.21.0",
+    "pg": "^8.22.0",
     "postgres": "^3.4.9",
     "puppeteer": "^25.1.0",
     "uuid": "^14.0.0"
@@ -28,6 +29,7 @@
     "next": "^16.2.9",
     "playwright": "^1.60.0",
     "tsx": "^4.22.4",
+    "turbo": "^2.10.1",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.8"
   },

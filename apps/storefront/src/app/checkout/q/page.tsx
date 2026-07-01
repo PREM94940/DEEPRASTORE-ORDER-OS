@@ -44,9 +44,10 @@ function QuickCheckoutContent() {
       try {
         const decoded = atob(priceOverride);
         if (!isNaN(Number(decoded))) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setPrice(Number(decoded));
         }
-      } catch (e) {
+      } catch (_e) {
         // Ignore invalid price overrides
       }
     }

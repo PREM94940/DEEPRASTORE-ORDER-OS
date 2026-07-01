@@ -6,7 +6,7 @@ import { approvedStaff } from "@deeprastore/infrastructure/src/schema/staff";
 import { eq } from "drizzle-orm";
 
 export default async function SettingsPage() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'nctwwfpqdlyqddjdhkrk.supabase.co';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'development.supabase.co';
 
   let isAdmin = false;
   let email = '';
