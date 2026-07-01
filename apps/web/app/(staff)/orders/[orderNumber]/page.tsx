@@ -73,7 +73,7 @@ export default async function OrderDetailsPage({ params }: { params: { orderNumb
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-wrap items-center gap-2 mt-4 pl-12">
+        <div className="flex flex-wrap items-center gap-2 mt-4 pl-12 border-t border-zinc-800/50 pt-3">
           <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-md border border-zinc-700 transition-colors">
             Edit
           </button>
@@ -81,14 +81,19 @@ export default async function OrderDetailsPage({ params }: { params: { orderNumb
             Log Payment
           </button>
           <button className="px-4 py-2 bg-blue-900/50 hover:bg-blue-900 text-blue-100 text-sm font-medium rounded-md border border-blue-800 transition-colors">
-            Move Production
+            Move Stage
           </button>
           <button className="px-4 py-2 bg-emerald-900/50 hover:bg-emerald-900 text-emerald-100 text-sm font-medium rounded-md border border-emerald-800 transition-colors">
             Dispatch
           </button>
-          <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-md border border-zinc-700 transition-colors ml-auto flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+          <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-md border border-zinc-700 transition-colors">
+            Customer Portal
+          </button>
+          <button className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-md border border-zinc-700 transition-colors">
             Print
+          </button>
+          <button className="px-4 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 text-sm font-medium rounded-md border border-red-900/50 transition-colors ml-auto">
+            Refund
           </button>
         </div>
       </header>
