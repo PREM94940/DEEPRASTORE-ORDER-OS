@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@types/react': npm:types-react@19.0.0-rc.1
+  '@types/react-dom': npm:types-react-dom@19.0.0-rc.1
+
 importers:
 
   .:
@@ -74,7 +78,7 @@ importers:
     dependencies:
       '@base-ui/react':
         specifier: ^1.5.0
-        version: 1.5.0(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 1.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(types-react@19.0.0-rc.1)
       '@deeprastore/core-domain':
         specifier: workspace:*
         version: link:../../packages/core-domain
@@ -140,11 +144,11 @@ importers:
         specifier: ^20
         version: 20.19.42
       '@types/react':
-        specifier: ^19
-        version: 19.2.17
+        specifier: npm:types-react@19.0.0-rc.1
+        version: types-react@19.0.0-rc.1
       '@types/react-dom':
-        specifier: ^19
-        version: 19.2.3(@types/react@19.2.17)
+        specifier: npm:types-react-dom@19.0.0-rc.1
+        version: types-react-dom@19.0.0-rc.1
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)
@@ -162,7 +166,7 @@ importers:
     dependencies:
       '@base-ui/react':
         specifier: ^1.5.0
-        version: 1.5.0(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 1.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(types-react@19.0.0-rc.1)
       '@deeprastore/infrastructure':
         specifier: workspace:*
         version: link:../../packages/infrastructure
@@ -228,11 +232,11 @@ importers:
         specifier: ^20
         version: 20.19.42
       '@types/react':
-        specifier: ^19
-        version: 19.2.17
+        specifier: npm:types-react@19.0.0-rc.1
+        version: types-react@19.0.0-rc.1
       '@types/react-dom':
-        specifier: ^19
-        version: 19.2.3(@types/react@19.2.17)
+        specifier: npm:types-react-dom@19.0.0-rc.1
+        version: types-react-dom@19.0.0-rc.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.62.1
         version: 8.62.1(@typescript-eslint/parser@8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
@@ -5144,19 +5148,19 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@base-ui/react@1.5.0(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@base-ui/react@1.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(types-react@19.0.0-rc.1)':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@base-ui/utils': 0.2.9(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@base-ui/utils': 0.2.9(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(types-react@19.0.0-rc.1)
       '@floating-ui/react-dom': 2.1.8(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@floating-ui/utils': 0.2.11
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       use-sync-external-store: 1.6.0(react@19.2.4)
     optionalDependencies:
-      '@types/react': 19.2.17
+      '@types/react': types-react@19.0.0-rc.1
 
-  '@base-ui/utils@0.2.9(@types/react@19.2.17)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@base-ui/utils@0.2.9(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(types-react@19.0.0-rc.1)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@floating-ui/utils': 0.2.11
@@ -5165,7 +5169,7 @@ snapshots:
       reselect: 5.2.0
       use-sync-external-store: 1.6.0(react@19.2.4)
     optionalDependencies:
-      '@types/react': 19.2.17
+      '@types/react': types-react@19.0.0-rc.1
 
   '@bcoe/v8-coverage@1.0.2': {}
 
@@ -6109,10 +6113,12 @@ snapshots:
   '@types/react-dom@19.2.3(@types/react@19.2.17)':
     dependencies:
       '@types/react': 19.2.17
+    optional: true
 
   '@types/react@19.2.17':
     dependencies:
       csstype: 3.2.3
+    optional: true
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -9147,7 +9153,7 @@ snapshots:
 
   types-react-dom@19.0.0-rc.1:
     dependencies:
-      '@types/react': 19.2.17
+      '@types/react': types-react@19.0.0-rc.1
 
   types-react@19.0.0-rc.1:
     dependencies:

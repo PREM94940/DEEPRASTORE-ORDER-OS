@@ -7,7 +7,9 @@ import { toast } from 'sonner';
 export function QuickViewDrawer({
   isOpen,
   onClose,
-  orderData
+  orderData,
+  extraContent,
+  extraActions
 }: {
   isOpen: boolean;
   onClose: () => void;

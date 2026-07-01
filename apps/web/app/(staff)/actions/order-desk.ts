@@ -516,7 +516,7 @@ export async function getOrderDetailsByNumberAction(orderNumber: string) {
     const [order] = await db.select().from(orders).where(eq(orders.orderNumber, orderNumber));
     if (!order) return null;
 
-    const [customer] = await db.select().from(customers).where(eq(customers.id, order.customerId));
+    const [customer] = order.customerId ? await db.select().from(customers).where(eq(customers.id, order.customerId as string)) : [null];
     const lines = await db.select().from(orderLineItems).where(eq(orderLineItems.orderId, order.id));
     const pays = await db.select().from(payments).where(eq(payments.orderId, order.id));
 

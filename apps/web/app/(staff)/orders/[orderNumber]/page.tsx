@@ -11,7 +11,7 @@ export default async function OrderDetailsPage({ params }: { params: { orderNumb
   const [order] = await db.select().from(orders).where(eq(orders.orderNumber, params.orderNumber));
   if (!order) return notFound();
 
-  const [customer] = await db.select().from(customers).where(eq(customers.id, order.customerId));
+  const [customer] = order.customerId ? await db.select().from(customers).where(eq(customers.id, order.customerId)) : [null];
   const lineItems = await db.select().from(orderLineItems).where(eq(orderLineItems.orderId, order.id));
   const orderPayments = await db.select().from(payments).where(eq(payments.orderId, order.id)).orderBy(desc(payments.createdAt));
   const logs = await db.select().from(auditLogs).where(eq(auditLogs.recordId, order.id)).orderBy(desc(auditLogs.createdAt));
@@ -115,11 +115,11 @@ export default async function OrderDetailsPage({ params }: { params: { orderNumb
                 {lineItems.map(item => (
                   <div key={item.id} className="p-4 hover:bg-zinc-900/30 transition-colors">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="font-medium text-zinc-200">{item.name || item.productId}</div>
-                      <div className="text-sm font-semibold text-zinc-300">₹{parseFloat(item.totalPrice || '0').toFixed(2)}</div>
+                      <div className="font-medium text-zinc-200">{(item as any).name || item.productId}</div>
+                      <div className="text-sm font-semibold text-zinc-300">₹{parseFloat((item as any).totalPrice || item.price || '0').toFixed(2)}</div>
                     </div>
                     <div className="text-xs text-zinc-400">Qty: {item.quantity}</div>
-                    {item.measurements && Object.keys(item.measurements).length > 0 && (
+                    {!!item.measurements && Object.keys(item.measurements as Record<string, any>).length > 0 && (
                       <div className="mt-2 text-xs bg-zinc-900/50 p-2 rounded">
                         <span className="text-zinc-500 block mb-1">Measurements:</span>
                         <span className="text-zinc-300">{JSON.stringify(item.measurements)}</span>
