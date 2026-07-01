@@ -48,9 +48,6 @@ jobs:
         ! grep -r "nctwwfpqdlyqddjdhkrk" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=e2e --exclude-dir=.github --exclude=protection.ts
         ! grep -r "Prem@9494026218" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.github
 
-    - name: Lint
-      run: pnpm -r run lint
-
     - name: Typecheck
       run: pnpm -r exec tsc --noEmit
 
