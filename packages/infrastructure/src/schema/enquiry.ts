@@ -7,12 +7,18 @@ export const enquiries = pgTable('enquiries', {
   customerName: varchar('customer_name', { length: 255 }).notNull(),
   customerPhone: varchar('customer_phone', { length: 50 }).notNull(),
   source: varchar('source', { length: 50 }).notNull(), // WhatsApp, Instagram, Walk-In, Website, Referral
-  productType: varchar('product_type', { length: 50 }),
+  productType: varchar('product_type', { length: 500 }),
   referenceImages: jsonb('reference_images'), // Array of URLs
   designImages: jsonb('design_images'), // Array of URLs
   notes: varchar('notes', { length: 2048 }),
   expectedDeliveryDate: timestamp('expected_delivery_date'),
   measurements: jsonb('measurements'),
+  lineItems: jsonb('line_items'), // Array of { code, name, size, qty, price, lineTotal }
+  subtotalAmount: numeric('subtotal_amount', { precision: 10, scale: 2 }),
+  discountAmount: numeric('discount_amount', { precision: 10, scale: 2 }),
+  deliveryAmount: numeric('delivery_amount', { precision: 10, scale: 2 }),
+  totalAmount: numeric('total_amount', { precision: 10, scale: 2 }),
+  advanceAmount: numeric('advance_amount', { precision: 10, scale: 2 }),
   status: varchar('status', { length: 50 }).notNull().default('NEW_REQUEST'), // NEW_REQUEST, AWAITING_QUOTE, etc.
   orderId: uuid('order_id').references(() => orders.id), // Link back to created order
   enquiryNumber: varchar('enquiry_number', { length: 50 }),

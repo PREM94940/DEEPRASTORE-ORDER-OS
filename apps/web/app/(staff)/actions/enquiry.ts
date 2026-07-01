@@ -48,13 +48,82 @@ export async function submitEnquiryAction(data: any) {
       advancePaymentProofUrl: data.advancePaymentProofUrl || null,
       utr: data.utr || null,
       websiteOrderId: data.websiteOrderId || null,
+      lineItems: data.lineItems || [],
+      subtotalAmount: data.subtotalAmount?.toString() || '0',
+      discountAmount: data.discountAmount?.toString() || '0',
+      deliveryAmount: data.deliveryAmount?.toString() || '0',
+      totalAmount: data.totalAmount?.toString() || '0',
+      advanceAmount: data.advanceAmount?.toString() || '0',
       status: 'REQUEST',
     });
 
-    revalidatePath('/pilot/order-desk');
+    try {
+      revalidatePath('/pilot/order-desk');
+    } catch (revalidateError) {
+      if (!(revalidateError instanceof Error) || !revalidateError.message.includes('static generation store')) {
+        console.error('Revalidation error:', revalidateError);
+      }
+    }
     return { success: true, enquiryNumber, trackingToken };
   } catch (error) {
-    console.error('Failed to submit enquiry:', error);
-    return { success: false, error: 'Failed to submit request' };
+    console.error("Create Order failed:", error);
+
+    if (error instanceof Error) {
+      console.error(error.stack);
+    }
+
+    throw error;
+  }
+}
+
+export async function searchProductAction(query: string) {
+  try {
+    if (!query || query.length < 2) return { success: true, products: [] };
+    const { shopifyProductsCache } = await import('@deeprastore/infrastructure/src/schema');
+    const { or, ilike } = await import('drizzle-orm');
+    
+    const results = await db.select({
+      sku: shopifyProductsCache.sku,
+      title: shopifyProductsCache.title,
+      price: shopifyProductsCache.price,
+    })
+    .from(shopifyProductsCache)
+    .where(
+      or(
+        ilike(shopifyProductsCache.sku, `%${query}%`),
+        ilike(shopifyProductsCache.title, `%${query}%`)
+      )
+    )
+    .limit(10);
+    
+    return { success: true, products: results };
+  } catch (error) {
+    console.error('Failed to search products:', error);
+    return { success: false, products: [] };
+  }
+}
+
+export async function lookupCustomerAction(phone: string) {
+  try {
+    if (!phone || phone.length < 5) return { success: false, customer: null };
+    const { customers, customerAddresses } = await import('@deeprastore/infrastructure/src/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [customer] = await db.select().from(customers).where(eq(customers.phone, phone));
+    if (!customer) return { success: true, customer: null };
+    
+    const [address] = await db.select().from(customerAddresses).where(eq(customerAddresses.customerPhone, phone)).orderBy(customerAddresses.createdAt);
+    
+    return { 
+      success: true, 
+      customer: {
+        name: customer.name || 'Unknown',
+        totalOrders: customer.totalOrders || 0,
+        city: address?.city || 'Unknown'
+      }
+    };
+  } catch (error) {
+    console.error('Failed to lookup customer:', error);
+    return { success: false, customer: null };
   }
 }

@@ -120,12 +120,12 @@ export function UnifiedOrderDesk({
       }));
 
       // Sync quote values
-      setBasePrice(initialEnquiry.quote?.basePrice || '');
-      setDiscountAmount(initialEnquiry.quote?.discountAmount || '');
-      setDeliveryAmount(initialEnquiry.quote?.deliveryAmount || '');
+      setBasePrice(initialEnquiry.subtotalAmount?.toString() || initialEnquiry.quote?.basePrice || '');
+      setDiscountAmount(initialEnquiry.discountAmount?.toString() || initialEnquiry.quote?.discountAmount || '');
+      setDeliveryAmount(initialEnquiry.deliveryAmount?.toString() || initialEnquiry.quote?.deliveryAmount || '');
       setDeliveryType(initialEnquiry.quote?.deliveryType || 'STANDARD_PARCEL');
-      setQuoteAmount(initialEnquiry.quote?.quoteAmount || '');
-      setRequiredAdvance(initialEnquiry.quote?.requiredAdvance || '');
+      setQuoteAmount(initialEnquiry.totalAmount?.toString() || initialEnquiry.quote?.quoteAmount || '');
+      setRequiredAdvance(initialEnquiry.advanceAmount?.toString() || initialEnquiry.quote?.requiredAdvance || '');
       setQuoteNotes(initialEnquiry.quote?.quoteNotes || '');
       setExpiresAt(safeDate(initialEnquiry.quote?.expiresAt));
       setInvoiceFile(null);
@@ -155,7 +155,15 @@ export function UnifiedOrderDesk({
         orderType: 'CUSTOM_STITCHING',
         productDetails: initialEnquiry.productType || '',
         measurements: initialEnquiry.measurements || null,
-        lineItems: [{ 
+        lineItems: (Array.isArray(initialEnquiry.lineItems) && initialEnquiry.lineItems.length > 0) 
+            ? initialEnquiry.lineItems.map((item: any) => ({
+                productId: item.id || item.code || '',
+                name: item.name || '',
+                code: item.code || '',
+                quantity: item.qty || 1,
+                price: item.price || 0
+              }))
+            : [{ 
           productId: '', 
           name: parsedData.productName || initialEnquiry.productType || 'Custom Product', 
           code: parsedData.productCode, 
@@ -164,13 +172,13 @@ export function UnifiedOrderDesk({
         }],
         deliveryDate: safeDate(initialEnquiry.expectedDeliveryDate),
         notes: parsedData.cleanNotes,
-        totalAmount: initialEnquiry.quote?.quoteAmount || '',
-        advanceAmount: parsedData.advanceAmount || initialEnquiry.quote?.requiredAdvance || '',
+        totalAmount: initialEnquiry.totalAmount?.toString() || initialEnquiry.quote?.quoteAmount || '',
+        advanceAmount: initialEnquiry.advanceAmount?.toString() || parsedData.advanceAmount || initialEnquiry.quote?.requiredAdvance || '',
         utrNumber: parsedData.utr || initialEnquiry.utr || '',
         orderDate: parsedData.orderDate || safeDate(initialEnquiry.createdAt),
-        basePrice: initialEnquiry.quote?.basePrice || '',
-        discountAmount: initialEnquiry.quote?.discountAmount || '',
-        deliveryAmount: initialEnquiry.quote?.deliveryAmount || '',
+        basePrice: initialEnquiry.subtotalAmount?.toString() || initialEnquiry.quote?.basePrice || '',
+        discountAmount: initialEnquiry.discountAmount?.toString() || initialEnquiry.quote?.discountAmount || '',
+        deliveryAmount: initialEnquiry.deliveryAmount?.toString() || initialEnquiry.quote?.deliveryAmount || '',
         deliveryType: initialEnquiry.quote?.deliveryType || 'STANDARD_PARCEL',
       }));
     }
@@ -507,12 +515,73 @@ Thank you for shopping with us!`;
                 ) : (
                   <div className="bg-white/5 p-2.5 rounded border border-white/5 space-y-2">
                     <div className="text-xs font-semibold text-white/90">{formData.orderType}</div>
-                    {formData.lineItems.map((item, idx) => (
-                      <div key={idx} className="text-xs text-white/70 flex justify-between border-t border-white/5 pt-1 mt-1">
-                        <span>{item.name || 'Unnamed Product'}</span>
-                        <span className="font-mono">Qty: {item.quantity} | ₹{item.price || 0}</span>
+                    
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        {formData.lineItems.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2 border-t border-white/10 pt-2 mt-2">
+                            <input 
+                              className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-full text-white outline-none"
+                              value={item.name}
+                              placeholder="Product Name"
+                              onChange={(e) => {
+                                const newItems = [...formData.lineItems];
+                                newItems[idx].name = e.target.value;
+                                setFormData({...formData, lineItems: newItems});
+                              }}
+                            />
+                            <input 
+                              type="number"
+                              className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-16 text-white outline-none"
+                              value={item.quantity}
+                              placeholder="Qty"
+                              onChange={(e) => {
+                                const newItems = [...formData.lineItems];
+                                newItems[idx].quantity = Number(e.target.value) || 1;
+                                setFormData({...formData, lineItems: newItems});
+                              }}
+                            />
+                            <input 
+                              type="number"
+                              className="bg-[#1a1a1a] border border-white/10 p-1.5 rounded text-xs w-20 text-white outline-none"
+                              value={item.price}
+                              placeholder="Price"
+                              onChange={(e) => {
+                                const newItems = [...formData.lineItems];
+                                newItems[idx].price = e.target.value;
+                                setFormData({...formData, lineItems: newItems});
+                              }}
+                            />
+                            <button
+                              className="text-red-500 hover:text-red-400 font-bold px-1"
+                              onClick={() => {
+                                setFormData({...formData, lineItems: formData.lineItems.filter((_, i) => i !== idx)});
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          className="text-emerald-400 hover:text-emerald-300 text-[10px] uppercase font-bold py-1 w-full text-center border border-dashed border-emerald-500/30 rounded mt-2"
+                          onClick={() => {
+                            setFormData({...formData, lineItems: [...formData.lineItems, { productId: '', name: '', code: '', quantity: 1, price: '' }]});
+                          }}
+                        >
+                          + Add Item
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      <>
+                        {formData.lineItems.map((item, idx) => (
+                          <div key={idx} className="text-xs text-white/70 flex justify-between border-t border-white/5 pt-1 mt-1">
+                            <span>{item.name || 'Unnamed Product'}</span>
+                            <span className="font-mono">Qty: {item.quantity} | ₹{item.price || 0}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
                     {formData.orderType !== 'READY_MADE' && formData.fabricSource !== 'NONE' && (
                       <div className="text-[10px] text-white/50 bg-[#111] p-1.5 rounded mt-2">
                         Fabric: {formData.fabricSource} {formData.fabricCount ? `(${formData.fabricCount})` : formData.fabricCode ? `(Code: ${formData.fabricCode})` : ''}
