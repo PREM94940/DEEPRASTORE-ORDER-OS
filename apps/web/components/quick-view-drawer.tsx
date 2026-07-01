@@ -63,85 +63,103 @@ Team Deeprastore`;
       
       {/* Drawer */}
       <div className="fixed inset-y-0 right-0 w-full md:w-[450px] bg-zinc-950 border-l border-zinc-800 shadow-2xl z-[101] flex flex-col transform transition-transform duration-300">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">
-              {orderData.orderNumber || orderData.enquiryNumber || 'Request'}
-              <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-medium">
-                {orderData.status || orderData.paymentStatus}
-              </span>
-            </h2>
-            <p className="text-sm text-zinc-400 mt-1">{orderData.customerName || orderData.name} • {orderData.customerPhone || orderData.phone}</p>
-          </div>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-zinc-800 rounded-md text-zinc-400 hover:text-zinc-100 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          
-          {/* Quick Actions Row */}
-          <div className="grid grid-cols-2 gap-2">
-            <button 
-              onClick={() => window.open(`https://wa.me/${(orderData.customerPhone || orderData.phone)?.replace(/\D/g, '')}`, '_blank')}
-              className="flex items-center justify-center gap-2 py-2 px-3 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 rounded-md text-sm font-medium transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
-              WhatsApp
-            </button>
-            <button 
-              onClick={() => copyToClipboard(`https://deeprastore.com/track/${orderData.trackingToken}`, 'Tracking link copied!')}
-              className="flex items-center justify-center gap-2 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded-md text-sm font-medium transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              Tracking Link
-            </button>
-          </div>
-
-          {/* Details Grid */}
-          <div className="grid grid-cols-2 gap-4 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800/50">
+        {/* Compact Operational Header */}
+        <div className="flex-none p-5 pb-4 border-b border-zinc-800 bg-zinc-950/80 sticky top-0 z-10 backdrop-blur-md">
+          {/* Top Line: Order ID & Name */}
+          <div className="flex items-start justify-between mb-3">
             <div>
-              <p className="text-xs text-zinc-500 mb-1">Total</p>
-              <p className="text-sm font-medium text-zinc-100">₹{orderData.totalAmount || orderData.quoteAmount || 0}</p>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500 mb-1">Balance</p>
-              <p className="text-sm font-medium text-amber-500">₹{orderData.balanceAmount || 0}</p>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500 mb-1">Expected Delivery</p>
-              <p className="text-sm font-medium text-zinc-100">
-                {orderData.expectedDeliveryDate ? new Date(orderData.expectedDeliveryDate).toLocaleDateString() : 'Pending'}
+              <h2 className="text-xl font-bold text-zinc-100 font-mono tracking-tight">
+                {orderData.orderNumber || orderData.enquiryNumber || 'Request'}
+              </h2>
+              <p className="text-base font-semibold text-zinc-300 mt-0.5">
+                {orderData.customerName || orderData.name || 'Unknown Customer'}
               </p>
             </div>
-            <div>
-              <p className="text-xs text-zinc-500 mb-1">Source</p>
-              <p className="text-sm font-medium text-zinc-100">{orderData.source || 'N/A'}</p>
-            </div>
-            {orderData.paymentStatus && (
-              <div>
-                <p className="text-xs text-zinc-500 mb-1">Payment Status</p>
-                <p className="text-sm font-medium text-zinc-100">{orderData.paymentStatus}</p>
-              </div>
-            )}
-            {orderData.productionStatus && (
-              <div>
-                <p className="text-xs text-zinc-500 mb-1">Production Stage</p>
-                <p className="text-sm font-medium text-zinc-100">{orderData.productionStatus}</p>
-              </div>
-            )}
-            {orderData.assignedStaff && (
-              <div>
-                <p className="text-xs text-zinc-500 mb-1">Assigned Staff</p>
-                <p className="text-sm font-medium text-zinc-100">{orderData.assignedStaff}</p>
-              </div>
-            )}
+            {/* Close Button */}
+            <button 
+              onClick={onClose}
+              className="p-1.5 -mr-1.5 hover:bg-zinc-800 rounded-md text-zinc-500 hover:text-zinc-100 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
           </div>
+
+          {/* Contact Line */}
+          <div className="flex items-center gap-4 text-sm font-medium mb-4">
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span>📞</span> {orderData.customerPhone || orderData.phone || 'N/A'}
+            </div>
+            <button 
+              onClick={() => window.open(`https://wa.me/${(orderData.customerPhone || orderData.phone)?.replace(/\D/g, '')}`, '_blank')}
+              className="flex items-center gap-1.5 text-[#25D366] hover:text-[#25D366]/80 transition-colors"
+            >
+              <span>💬</span> WhatsApp
+            </button>
+          </div>
+
+          {/* Status Badge */}
+          <div className="mb-4">
+            <span className="text-xs px-2.5 py-1 rounded bg-zinc-800 text-zinc-200 font-bold tracking-wider uppercase border border-zinc-700">
+              Status: {orderData.status || orderData.paymentStatus || orderData.productionStatus || 'N/A'}
+            </span>
+          </div>
+
+          {/* Financials Row */}
+          <div className="grid grid-cols-3 gap-2 py-3 border-y border-zinc-800/50 mb-3">
+            <div>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-0.5 font-semibold">Total</p>
+              <p className="text-sm font-bold text-zinc-200">₹{orderData.totalAmount || orderData.quoteAmount || 0}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-0.5 font-semibold">Paid</p>
+              <p className="text-sm font-bold text-emerald-400">₹{orderData.advanceAmount || orderData.paidAmount || 0}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-0.5 font-semibold">Due</p>
+              <p className="text-sm font-bold text-amber-500">₹{orderData.balanceAmount || 0}</p>
+            </div>
+          </div>
+
+          {/* Ops Assignment Row */}
+          <div className="grid grid-cols-3 gap-2 text-sm text-zinc-300 mb-4">
+            <div>
+              <span className="text-zinc-500">Staff:</span> <span className="font-medium text-zinc-100">{orderData.assignedStaff || 'Unassigned'}</span>
+            </div>
+            <div>
+              <span className="text-zinc-500">Master:</span> <span className="font-medium text-zinc-100">{orderData.masterJi || 'Unassigned'}</span>
+            </div>
+            <div>
+              <span className="text-zinc-500">Delivery:</span> <span className="font-medium text-zinc-100">
+                {orderData.expectedDeliveryDate ? new Date(orderData.expectedDeliveryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'TBD'}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Bar */}
+          <div className="flex gap-2 items-center">
+            <button 
+              onClick={handleOpenFullOrder}
+              className="flex-1 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-sm transition-colors"
+            >
+              Open Full Order Details
+            </button>
+            <button 
+              onClick={() => toast.info('Feature under development')}
+              className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold rounded border border-zinc-700 transition-colors"
+            >
+              Log Payment
+            </button>
+            <button 
+              onClick={() => toast.info('Feature under development')}
+              className="flex-1 py-2 bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 text-xs font-bold rounded border border-blue-900/50 transition-colors"
+            >
+              Move Stage
+            </button>
+          </div>
+        </div>
+
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
 
           {/* Products Summary */}
           <div>
@@ -181,22 +199,6 @@ Team Deeprastore`;
             className="col-span-2 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-100 rounded-md text-sm font-medium transition-colors border border-zinc-800"
           >
             Copy WhatsApp Update
-          </button>
-          
-          <button
-            onClick={() => {
-              toast.info('Feature under development');
-            }}
-            className="py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-100 rounded-md text-sm font-medium transition-colors border border-zinc-800"
-          >
-            Log Payment
-          </button>
-          
-          <button
-            onClick={handleOpenFullOrder}
-            className="py-2.5 bg-white text-black hover:bg-zinc-200 rounded-md text-sm font-semibold transition-colors"
-          >
-            Open Full Order Details
           </button>
         </div>
       </div>
