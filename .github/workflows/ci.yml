@@ -52,4 +52,7 @@ jobs:
       run: pnpm -r exec tsc --noEmit
 
     - name: Build
+      env:
+        NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy_anon_key"
       run: pnpm -r run build
