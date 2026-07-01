@@ -196,7 +196,7 @@ Team Deeprastore`;
             onClick={handleOpenFullOrder}
             className="py-2.5 bg-white text-black hover:bg-zinc-200 rounded-md text-sm font-semibold transition-colors"
           >
-            Open Full Order
+            Open Full Order Details
           </button>
         </div>
       </div>
