@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@deeprastore/infrastructure';
-import { orders, orderLineItems, enquiries, customers, payments, customerAddresses, measurementsHistory, enquiryQuotes, enquiryComments } from '@deeprastore/infrastructure/src/schema';
+import { orders, orderLineItems, enquiries, customers, payments, customerAddresses, measurementsHistory, enquiryQuotes, enquiryComments, auditLogs } from '@deeprastore/infrastructure/src/schema';
 import { eq, and, desc, ne } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { notifyOrderCreated, notifyPaymentReceived } from './notifications';
@@ -170,6 +170,10 @@ export async function updateEnquiryStatusAction(
     await db.update(enquiries)
       .set(updateData)
       .where(eq(enquiries.id, enquiryId));
+
+    if (status !== beforeStatus) {
+      await logAuditEvent('enquiries', enquiryId, 'Status Changed', { status: beforeStatus }, { status: status }, assignedTo || 'System');
+    }
 
     safeRevalidatePath('/pilot/order-desk');
     const [enq] = await db.select().from(enquiries).where(eq(enquiries.id, enquiryId));
@@ -459,8 +463,10 @@ export async function createUnifiedOrderAction(data: any) {
     });
     
     if (orderResult) {
+      await logAuditEvent('orders', orderResult.id, 'Order Created', null, orderResult, data.assignedStaff || 'System');
       notifyOrderCreated(orderResult.customerPhone, orderResult.id, Number(orderResult.totalAmount), Number(orderResult.advanceAmount)).catch(console.error);
       if (paymentAmount > 0) {
+        await logAuditEvent('payments', orderResult.id, 'Payment Logged', null, { amount: paymentAmount, utr: data.utrNumber }, data.assignedStaff || 'System');
         notifyPaymentReceived(orderResult.customerPhone, orderResult.id, paymentAmount).catch(console.error);
       }
     }
@@ -486,5 +492,47 @@ export async function createUnifiedOrderAction(data: any) {
   } catch (error) {
     console.error('Failed to create order:', error);
     return { success: false, error: 'Failed to create order' };
+  }
+}
+
+export async function logAuditEvent(tableName: string, recordId: string, action: string, oldData?: any, newData?: any, staffId: string = 'System') {
+  try {
+    await db.insert(auditLogs).values({
+      tableName,
+      recordId,
+      action,
+      oldData,
+      newData,
+      staffId
+    });
+  } catch (error) {
+    console.error('Failed to log audit event:', error);
+  }
+}
+
+export async function getOrderDetailsByNumberAction(orderNumber: string) {
+  try {
+    await requireStaffAuth();
+    const [order] = await db.select().from(orders).where(eq(orders.orderNumber, orderNumber));
+    if (!order) return null;
+
+    const [customer] = await db.select().from(customers).where(eq(customers.id, order.customerId));
+    const lines = await db.select().from(orderLineItems).where(eq(orderLineItems.orderId, order.id));
+    const pays = await db.select().from(payments).where(eq(payments.orderId, order.id));
+
+    return { order, customer, lineItems: lines, payments: pays };
+  } catch (err) {
+    console.error('Failed to get order details by number', err);
+    return null;
+  }
+}
+
+export async function getOrderAuditLogsAction(recordId: string) {
+  try {
+    await requireStaffAuth();
+    return await db.select().from(auditLogs).where(eq(auditLogs.recordId, recordId)).orderBy(desc(auditLogs.createdAt));
+  } catch (err) {
+    console.error('Failed to get audit logs', err);
+    return [];
   }
 }

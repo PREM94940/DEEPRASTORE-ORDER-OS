@@ -7,7 +7,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { OrderDrawer } from "./order-drawer";
+import { QuickViewDrawer } from "./quick-view-drawer";
 import { getFinancialStatus, getFinancialStatusLabel, getFinancialStatusColor } from "@/lib/financials";
 
 type OrderRow = {
@@ -217,7 +217,8 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
               return (
                 <div 
                   key={row.id} 
-                  className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col gap-3 relative shadow-sm"
+                  onClick={() => setSelectedOrder(row)}
+                  className="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800/50 cursor-pointer rounded-lg p-4 flex flex-col gap-3 relative shadow-sm transition-colors"
                 >
                   <div className="flex justify-between items-start">
                     <div className="font-mono text-xs text-zinc-400">
@@ -241,26 +242,6 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
                       <div className={`text-[10px] font-semibold tracking-wider uppercase mt-0.5 ${getFinancialStatusColor(finStatus)}`}>
                         {getFinancialStatusLabel(finStatus)}
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedOrder(row);
-                        }}
-                        className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded text-xs font-semibold transition-colors border border-zinc-700"
-                      >
-                        View
-                      </button>
-                      <a 
-                        href={`https://wa.me/${(row.customerPhone || '').replace(/\D/g, '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="px-3 py-1.5 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 rounded text-xs font-semibold transition-colors border border-[#25D366]/20"
-                      >
-                        WhatsApp
-                      </a>
                     </div>
                   </div>
                 </div>
@@ -299,7 +280,7 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
                     <tr
                       key={row.id}
                       onClick={() => setSelectedOrder(row.original)}
-                      className="hover:bg-zinc-900/50 transition-colors cursor-pointer"
+                      className="cursor-pointer hover:bg-zinc-900/50 transition-colors group"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
@@ -321,11 +302,22 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
         </div>
       </div>
 
-      <OrderDrawer 
-        order={selectedOrder} 
-        isOpen={!!selectedOrder} 
-        onClose={() => setSelectedOrder(null)} 
-        onOptimisticUpdate={addOptimisticOrder}
+      <QuickViewDrawer
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        orderData={{
+          id: selectedOrder?.id,
+          orderNumber: selectedOrder?.businessId,
+          customerName: selectedOrder?.customerName,
+          customerPhone: selectedOrder?.customerPhone,
+          totalAmount: selectedOrder?.totalAmount,
+          advanceAmount: selectedOrder?.advanceAmount,
+          balanceAmount: selectedOrder?.balanceAmount,
+          status: selectedOrder?.status,
+          paymentStatus: selectedOrder?.paymentStatus,
+          expectedDeliveryDate: selectedOrder?.expectedDeliveryDate,
+          source: selectedOrder?.source,
+        }}
       />
     </>
   );

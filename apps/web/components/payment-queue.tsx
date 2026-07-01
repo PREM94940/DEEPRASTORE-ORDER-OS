@@ -4,6 +4,7 @@ import * as React from "react";
 import { CheckCircle, XCircle, Clock, Search, Image as ImageIcon, X, ArrowLeft } from "lucide-react";
 import { approvePaymentAction, rejectPaymentAction } from "@/app/(staff)/actions/payments";
 import { useRouter } from "next/navigation";
+import { QuickViewDrawer } from "./quick-view-drawer";
 
 type PaymentRow = {
   id: string;
@@ -13,9 +14,11 @@ type PaymentRow = {
   status: string;
   createdAt: Date;
   orderId: string;
+  orderNumber: string | null;
   businessId: string | null;
   customerPhone: string | null;
   customerName: string | null;
+  paymentMethod: string | null;
 };
 
 export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
@@ -91,11 +94,10 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
     return optimisticData.filter(p => p.status === status).length;
   };
 
-  return (
     <div className="flex flex-1 h-full gap-6 overflow-hidden text-sm text-zinc-300">
       
-      {/* Left List: Queue */}
-      <div className={`w-full md:w-1/3 flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden ${selectedPayment ? 'hidden md:flex' : 'flex'}`}>
+      {/* List Queue */}
+      <div className="w-full flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden flex">
         {/* Search */}
         <div className="p-3 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-2">
           <Search size={14} className="text-zinc-500" />
@@ -136,18 +138,50 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
             <div 
               key={payment.id} 
               onClick={() => setSelectedPayment(payment)}
-              className={`p-3 cursor-pointer transition-colors ${selectedPayment?.id === payment.id ? 'bg-zinc-850 border-l-2 border-blue-500' : 'hover:bg-zinc-900/50 border-l-2 border-transparent'}`}
+              className="p-4 cursor-pointer hover:bg-zinc-900/50 transition-colors space-y-2 border-b border-zinc-800/50 last:border-0"
             >
-              <div className="flex justify-between items-start mb-1">
-                <span className="font-semibold text-zinc-100">₹{parseFloat(payment.amount || '0').toFixed(2)}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${payment.status === 'PENDING' ? 'bg-amber-900/30 text-amber-500 border border-amber-900/50' : payment.status === 'VERIFIED' ? 'bg-emerald-900/30 text-emerald-500 border border-emerald-900/50' : 'bg-red-900/30 text-red-500 border border-red-900/50'}`}>
-                  {payment.status}
-                </span>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-zinc-100">{payment.customerName || 'Unknown'}</h3>
+                  <p className="text-xs text-zinc-400">{payment.customerPhone}</p>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold text-zinc-100">₹{parseFloat(payment.amount || '0').toFixed(2)}</div>
+                  <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded font-medium ${payment.status === 'PENDING' ? 'bg-amber-900/30 text-amber-500 border border-amber-900/50' : payment.status === 'VERIFIED' ? 'bg-emerald-900/30 text-emerald-500 border border-emerald-900/50' : 'bg-red-900/30 text-red-500 border border-red-900/50'}`}>
+                    {payment.status}
+                  </span>
+                </div>
               </div>
-              <div className="text-xs text-zinc-400 font-mono mb-2">UTR: {payment.utr || 'N/A'}</div>
-              <div className="flex justify-between text-xs">
-                <span className="text-zinc-300 font-medium">{payment.customerName || payment.customerPhone}</span>
-                <span className="text-zinc-500">{new Date(payment.createdAt).toLocaleDateString()}</span>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400 bg-zinc-900/40 p-2 rounded border border-zinc-800/50">
+                <div>
+                  <span className="text-zinc-500 block">Order</span>
+                  <span className="text-zinc-300 font-medium">{payment.orderNumber || payment.businessId || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block">UTR</span>
+                  <span className="text-zinc-300 font-mono">{payment.utr || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block">Method</span>
+                  <span className="text-zinc-300 uppercase">{payment.paymentMethod || 'N/A'}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500 block">Time</span>
+                  <span className="text-zinc-300">{new Date(payment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                {payment.screenshotUrl ? (
+                  <span className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                    <ImageIcon size={12} /> Screenshot Available
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded">
+                    <X size={12} /> No Screenshot
+                  </span>
+                )}
               </div>
             </div>
           )) : (
@@ -156,114 +190,65 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
         </div>
       </div>
 
-      {/* Right Pane: Verification Details */}
-      <div className={`flex-1 flex-col bg-zinc-950 border border-zinc-800 rounded-md overflow-hidden relative ${!selectedPayment ? 'hidden md:flex' : 'flex'}`}>
-        {selectedPayment ? (
-          <>
-            {/* Header */}
-            <div className="p-3 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setSelectedPayment(null)}
-                  className="md:hidden p-1.5 -ml-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
-                >
-                  <ArrowLeft size={18} />
-                </button>
-                <div>
-                  <h2 className="text-lg font-semibold text-zinc-100">Review Payment</h2>
-                  <p className="text-xs text-zinc-400">Order: {selectedPayment.businessId || selectedPayment.orderId.slice(0,8)}</p>
-                </div>
-              </div>
-              {selectedPayment.status === 'PENDING' && (
-                <div className="flex gap-2">
-                  <button 
-                    onClick={handleReject}
-                    disabled={isPending}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-red-950/40 text-red-400 border border-red-900/30 hover:bg-red-900/30 transition-colors text-sm font-medium disabled:opacity-50"
-                  >
-                    <XCircle size={16} /> Reject
-                  </button>
-                  <button 
-                    onClick={handleApprove}
-                    disabled={isPending}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white transition-colors text-sm font-medium shadow-sm disabled:opacity-50"
-                  >
-                    <CheckCircle size={16} /> Verify Match
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Content Split */}
-            <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
-              {/* Image Pane */}
-              <div className="w-full md:w-1/2 p-4 flex flex-col items-center justify-center bg-black/40 border-b md:border-b-0 md:border-r border-zinc-800 min-h-[300px] md:min-h-0">
-                {selectedPayment.screenshotUrl ? (
-                  <div className="relative w-full h-full flex flex-col items-center justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={selectedPayment.screenshotUrl} 
-                      alt="Payment Screenshot" 
-                      onClick={() => setIsLightboxOpen(true)}
-                      className="max-w-full max-h-[85%] object-contain rounded-md border border-zinc-700 shadow-xl cursor-zoom-in hover:border-zinc-500 transition-colors"
-                    />
-                    <p className="text-xs text-zinc-500 mt-2">Click screenshot to enlarge</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center text-zinc-650 gap-3">
-                    <ImageIcon size={48} />
-                    <span>No screenshot uploaded</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Data Pane */}
-              <div className="w-full md:w-1/2 p-4 md:overflow-y-auto space-y-4">
-                <div>
-                  <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Claimed Details</h3>
-                  <div className="space-y-4">
-                    <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-3">
-                      <div className="text-xs text-zinc-400 mb-1">Amount</div>
-                      <div className="text-2xl font-bold text-zinc-100">₹{parseFloat(selectedPayment.amount || '0').toFixed(2)}</div>
-                    </div>
-                    <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-3">
-                      <div className="text-xs text-zinc-400 mb-1">UTR / Transaction ID</div>
-                      <div className="text-lg font-mono text-zinc-200">{selectedPayment.utr || 'Not Provided'}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Customer Context</h3>
-                  <div className="bg-zinc-900/50 rounded-lg border border-zinc-800 p-3 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Name</span>
-                      <span className="font-medium text-zinc-200">{selectedPayment.customerName || 'Unknown'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Phone</span>
-                      <span className="font-medium text-zinc-200">{selectedPayment.customerPhone}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Time</span>
-                      <span className="text-zinc-200">{new Date(selectedPayment.createdAt).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
+      <QuickViewDrawer 
+        isOpen={!!selectedPayment}
+        onClose={() => setSelectedPayment(null)}
+        orderData={{
+          orderNumber: selectedPayment?.orderNumber || selectedPayment?.businessId,
+          customerName: selectedPayment?.customerName,
+          customerPhone: selectedPayment?.customerPhone,
+          totalAmount: selectedPayment?.amount, // Just using amount to fulfill TS/UI for now
+          paymentStatus: selectedPayment?.status,
+        }}
+        extraContent={
+          selectedPayment?.screenshotUrl ? (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Payment Screenshot</h3>
+              <div className="relative w-full aspect-auto flex flex-col items-center justify-center bg-black/40 border border-zinc-800 rounded-lg p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img 
+                  src={selectedPayment.screenshotUrl} 
+                  alt="Payment Screenshot" 
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="max-w-full max-h-[400px] object-contain rounded-md border border-zinc-700 shadow-xl cursor-zoom-in hover:border-zinc-500 transition-colors"
+                />
               </div>
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-zinc-500">
-            <Clock size={48} className="mb-4 text-zinc-700" />
-            <p>Select a payment from the queue to review.</p>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Payment Screenshot</h3>
+              <div className="flex flex-col items-center justify-center bg-zinc-900/50 border border-zinc-800 rounded-lg p-6 text-zinc-650 gap-3">
+                <ImageIcon size={32} />
+                <span className="text-sm">No screenshot uploaded</span>
+              </div>
+            </div>
+          )
+        }
+        extraActions={
+          selectedPayment?.status === 'PENDING' ? (
+            <>
+              <button 
+                onClick={handleReject}
+                disabled={isPending}
+                className="col-span-1 flex items-center justify-center gap-1 py-2.5 rounded-md bg-red-950/40 text-red-400 border border-red-900/30 hover:bg-red-900/30 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                <XCircle size={16} /> Reject
+              </button>
+              <button 
+                onClick={handleApprove}
+                disabled={isPending}
+                className="col-span-1 flex items-center justify-center gap-1 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white transition-colors text-sm font-medium shadow-sm disabled:opacity-50"
+              >
+                <CheckCircle size={16} /> Verify
+              </button>
+            </>
+          ) : null
+        }
+      />
 
       {/* Lightbox Modal */}
       {isLightboxOpen && selectedPayment?.screenshotUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 p-4 animate-fade-in">
           <button 
             onClick={() => setIsLightboxOpen(false)}
             className="absolute top-4 right-4 p-2 bg-zinc-900/80 border border-zinc-800 text-zinc-200 hover:text-white rounded-full transition-colors"

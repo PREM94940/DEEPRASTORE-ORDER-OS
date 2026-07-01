@@ -2,6 +2,7 @@
 import "../globals.css";
 import { GlobalSearch } from "@/components/global-search";
 import Link from "next/link";
+import { Toaster } from "sonner";
 
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@deeprastore/infrastructure/src/db/client";
@@ -110,6 +111,7 @@ export default async function RootLayout({
           <div className="flex-1 overflow-auto relative">
             {children}
           </div>
+          <Toaster theme="dark" position="top-right" />
         </main>
       </body>
     </html>

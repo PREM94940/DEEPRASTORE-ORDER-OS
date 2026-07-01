@@ -17,8 +17,10 @@ export default async function PaymentCenterPage() {
       createdAt: payments.createdAt,
       orderId: orders.id,
       businessId: orders.businessId,
+      orderNumber: orders.orderNumber,
       customerPhone: orders.customerPhone,
       customerName: orders.customerName,
+      paymentMethod: orders.paymentMethod,
     })
     .from(payments)
     .innerJoin(orders, eq(payments.orderId, orders.id))
