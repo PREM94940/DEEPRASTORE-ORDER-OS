@@ -22,6 +22,9 @@ type OrderRow = {
   advanceAmount: string | null;
   status: string;
   paymentStatus: string;
+  productionStatus?: string;
+  assignedStaff?: string;
+  expectedDeliveryDate?: Date | null;
   primaryImageUrl: string;
   createdAt: Date;
 };
@@ -315,6 +318,8 @@ export function OperationsGrid({ initialData, defaultTab = 'Active Production' }
           balanceAmount: selectedOrder?.balanceAmount,
           status: selectedOrder?.status,
           paymentStatus: selectedOrder?.paymentStatus,
+          productionStatus: selectedOrder?.productionStatus,
+          assignedStaff: selectedOrder?.assignedStaff,
           expectedDeliveryDate: selectedOrder?.expectedDeliveryDate,
           source: selectedOrder?.source,
         }}

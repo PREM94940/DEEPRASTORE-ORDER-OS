@@ -123,6 +123,24 @@ Team Deeprastore`;
               <p className="text-xs text-zinc-500 mb-1">Source</p>
               <p className="text-sm font-medium text-zinc-100">{orderData.source || 'N/A'}</p>
             </div>
+            {orderData.paymentStatus && (
+              <div>
+                <p className="text-xs text-zinc-500 mb-1">Payment Status</p>
+                <p className="text-sm font-medium text-zinc-100">{orderData.paymentStatus}</p>
+              </div>
+            )}
+            {orderData.productionStatus && (
+              <div>
+                <p className="text-xs text-zinc-500 mb-1">Production Stage</p>
+                <p className="text-sm font-medium text-zinc-100">{orderData.productionStatus}</p>
+              </div>
+            )}
+            {orderData.assignedStaff && (
+              <div>
+                <p className="text-xs text-zinc-500 mb-1">Assigned Staff</p>
+                <p className="text-sm font-medium text-zinc-100">{orderData.assignedStaff}</p>
+              </div>
+            )}
           </div>
 
           {/* Products Summary */}

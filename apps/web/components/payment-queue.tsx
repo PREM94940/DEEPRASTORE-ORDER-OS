@@ -94,6 +94,7 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
     return optimisticData.filter(p => p.status === status).length;
   };
 
+  return (
     <div className="flex flex-1 h-full gap-6 overflow-hidden text-sm text-zinc-300">
       
       {/* List Queue */}
@@ -201,28 +202,75 @@ export function PaymentQueue({ initialData }: { initialData: PaymentRow[] }) {
           paymentStatus: selectedPayment?.status,
         }}
         extraContent={
-          selectedPayment?.screenshotUrl ? (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Payment Screenshot</h3>
-              <div className="relative w-full aspect-auto flex flex-col items-center justify-center bg-black/40 border border-zinc-800 rounded-lg p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src={selectedPayment.screenshotUrl} 
-                  alt="Payment Screenshot" 
-                  onClick={() => setIsLightboxOpen(true)}
-                  className="max-w-full max-h-[400px] object-contain rounded-md border border-zinc-700 shadow-xl cursor-zoom-in hover:border-zinc-500 transition-colors"
-                />
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Payment Details</h3>
+              <div className="grid grid-cols-2 gap-4 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800/50">
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Customer</p>
+                  <p className="text-sm font-medium text-zinc-100">{selectedPayment?.customerName || 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Phone</p>
+                  <p className="text-sm font-medium text-zinc-100">{selectedPayment?.customerPhone || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Order</p>
+                  <p className="text-sm font-medium text-zinc-100">{selectedPayment?.orderNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Amount</p>
+                  <p className="text-sm font-bold text-zinc-100">₹{selectedPayment?.amount}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">UTR</p>
+                  <p className="text-sm font-mono text-zinc-300">{selectedPayment?.utr}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Method</p>
+                  <p className="text-sm font-medium text-zinc-100 uppercase">{selectedPayment?.paymentMethod}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 mb-1">Date</p>
+                  <p className="text-sm font-medium text-zinc-100">
+                    {selectedPayment ? new Date(selectedPayment.createdAt).toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+                {selectedPayment?.status === 'VERIFIED' && (
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1">Verified By</p>
+                    <p className="text-sm font-medium text-emerald-500">Staff</p>
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="mt-6">
-              <h3 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Payment Screenshot</h3>
-              <div className="flex flex-col items-center justify-center bg-zinc-900/50 border border-zinc-800 rounded-lg p-6 text-zinc-650 gap-3">
-                <ImageIcon size={32} />
-                <span className="text-sm">No screenshot uploaded</span>
+
+            {selectedPayment?.screenshotUrl ? (
+              <div>
+                <h3 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider flex items-center justify-between">
+                  <span>Payment Screenshot</span>
+                  <span className="text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">Available</span>
+                </h3>
+                <div className="relative w-full aspect-auto flex flex-col items-center justify-center bg-black/40 border border-zinc-800 rounded-lg p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={selectedPayment.screenshotUrl} 
+                    alt="Payment Screenshot" 
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="max-w-full max-h-[400px] object-contain rounded-md border border-zinc-700 shadow-xl cursor-zoom-in hover:border-zinc-500 transition-colors"
+                  />
+                </div>
               </div>
-            </div>
-          )
+            ) : (
+              <div>
+                <h3 className="text-sm font-medium text-zinc-400 mb-3 uppercase tracking-wider">Payment Screenshot</h3>
+                <div className="flex flex-col items-center justify-center bg-zinc-900/50 border border-zinc-800 rounded-lg p-6 text-zinc-650 gap-3">
+                  <ImageIcon size={32} />
+                  <span className="text-sm">No screenshot uploaded</span>
+                </div>
+              </div>
+            )}
+          </div>
         }
         extraActions={
           selectedPayment?.status === 'PENDING' ? (
