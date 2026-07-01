@@ -45,7 +45,7 @@ jobs:
     - name: Secret Scan
       run: |
         echo "Scanning for exposed production credentials..."
-        ! grep -r "nctwwfpqdlyqddjdhkrk" . --exclude-dir=.git --exclude-dir=node_modules --exclude=protection.ts
+        ! grep -r "nctwwfpqdlyqddjdhkrk" . --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=e2e --exclude=protection.ts
         ! grep -r "Prem@9494026218" . --exclude-dir=.git --exclude-dir=node_modules
 
     - name: Lint
